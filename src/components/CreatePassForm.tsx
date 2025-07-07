@@ -16,8 +16,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Minus } from 'lucide-react';
 import PassPreview from './PassPreview';
 
+interface PassData {
+  title: string;
+  description: string;
+  type: string;
+  backgroundColor: string;
+  textColor: string;
+  fields: Record<string, string>;
+}
+
 const CreatePassForm = () => {
-  const [passData, setPassData] = useState({
+  const [passData, setPassData] = useState<PassData>({
     title: 'Sample Pass',
     description: 'This is a sample pass description',
     type: 'coupon',
