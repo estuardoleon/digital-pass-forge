@@ -1,17 +1,52 @@
-
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import StatsCards from '@/components/StatsCards';
 import PassCard from '@/components/PassCard';
 import CreatePassForm from '@/components/CreatePassForm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Filter, Plus, LogIn } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Search, Filter, Plus, LogOut } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
-const Index = () => {
+interface SessionData {
+  email: string;
+  role: 'admin' | 'user';
+  loginTime: string;
+}
+
+const Dashboard = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [currentView, setCurrentView] = useState<'dashboard' | 'create'>('dashboard');
+  const [sessionData, setSessionData] = useState<SessionData | null>(null);
+
+  // Check authentication on component mount
+  useEffect(() => {
+    const session = localStorage.getItem('passkit_session');
+    if (!session) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const parsedSession = JSON.parse(session);
+      setSessionData(parsedSession);
+    } catch (error) {
+      console.error('Invalid session data:', error);
+      localStorage.removeItem('passkit_session');
+      navigate('/login');
+    }
+  }, [navigate]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('passkit_session');
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
+    });
+    navigate('/login');
+  };
 
   // Mock data for passes
   const mockPasses = [
@@ -61,12 +96,16 @@ const Index = () => {
     }
   ];
 
+  if (!sessionData) {
+    return null; // Loading state while checking authentication
+  }
+
   if (currentView === 'create') {
     return (
       <div className="min-h-screen">
         <Header />
         <main className="container mx-auto px-6 py-8">
-          <div className="mb-6">
+          <div className="mb-6 flex items-center justify-between">
             <Button 
               variant="outline" 
               onClick={() => setCurrentView('dashboard')}
@@ -74,6 +113,15 @@ const Index = () => {
             >
               ← Back to Dashboard
             </Button>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-muted-foreground">
+                {sessionData.role === 'admin' ? 'Administrator' : 'User'}: {sessionData.email}
+              </span>
+              <Button variant="outline" onClick={handleLogout}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </Button>
+            </div>
           </div>
           <CreatePassForm />
         </main>
@@ -87,18 +135,21 @@ const Index = () => {
       
       <main className="container mx-auto px-6 py-8">
         {/* Welcome Section */}
-        <div className="mb-8 animate-fade-in flex items-center justify-between">
+        <div className="mb-8 flex items-center justify-between animate-fade-in">
           <div>
             <h1 className="text-3xl font-bold text-foreground mb-2">
-              Welcome to PassKit Pro! 👋
+              Welcome back, {sessionData.role === 'admin' ? 'Administrator' : 'User'}! 👋
             </h1>
             <p className="text-lg text-muted-foreground">
-              Create and manage digital passes for your business.
+              Manage your digital passes and track their performance.
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Logged in as: {sessionData.email}
             </p>
           </div>
-          <Button onClick={() => navigate('/login')} className="bg-gradient-to-r from-primary to-secondary">
-            <LogIn className="w-4 h-4 mr-2" />
-            Sign In
+          <Button variant="outline" onClick={handleLogout}>
+            <LogOut className="w-4 h-4 mr-2" />
+            Logout
           </Button>
         </div>
 
@@ -121,7 +172,7 @@ const Index = () => {
             </Button>
             <Button 
               onClick={() => setCurrentView('create')}
-              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+              className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90"
             >
               <Plus className="w-4 h-4 mr-2" />
               Create Pass
@@ -141,10 +192,10 @@ const Index = () => {
         {/* Empty State for when no passes exist */}
         {mockPasses.length === 0 && (
           <div className="text-center py-12">
-            <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mx-auto mb-6 flex items-center justify-center">
+            <div className="w-24 h-24 bg-gradient-to-br from-primary to-secondary rounded-full mx-auto mb-6 flex items-center justify-center">
               <Plus className="w-12 h-12 text-white" />
             </div>
-            <h3 className="text-2xl font-semibold text-gray-900 mb-2">
+            <h3 className="text-2xl font-semibold text-foreground mb-2">
               Create your first pass
             </h3>
             <p className="text-muted-foreground mb-6 max-w-md mx-auto">
@@ -153,7 +204,7 @@ const Index = () => {
             <Button 
               onClick={() => setCurrentView('create')}
               size="lg"
-              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+              className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90"
             >
               <Plus className="w-5 h-5 mr-2" />
               Create Your First Pass
@@ -165,4 +216,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default Dashboard;
