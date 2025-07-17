@@ -7,8 +7,8 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Login from "./components/Login";
 import NotFound from "./pages/NotFound";
-import Settings from "./pages/Settings";
-import Profile from "./pages/Profile";
+import Settings from "./pages/settings";
+import Profile from "./pages/profile";
 
 
 const queryClient = new QueryClient();
