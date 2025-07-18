@@ -26,10 +26,14 @@ const Login = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Hardcoded test credentials
+  // System credentials - Only authorized personnel
   const testCredentials = {
-    admin: { email: 'admin@demo.com', password: 'admin123' },
-    user: { email: 'user@demo.com', password: 'user123' }
+    admin: { email: 'admin@alcazaren.com.gt', password: 'admin123' },
+    users: [
+      'andrea@alcazaren.com.gt',
+      'julio@alcazaren.com.gt', 
+      'alberto@alcazaren.com.gt'
+    ]
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,8 +45,18 @@ const Login = () => {
     await new Promise(resolve => setTimeout(resolve, 800));
 
     // Validate credentials
-    const testCred = testCredentials[credentials.role];
-    if (credentials.email === testCred.email && credentials.password === testCred.password) {
+    let isValidUser = false;
+    
+    if (credentials.role === 'admin') {
+      isValidUser = credentials.email === testCredentials.admin.email && 
+                   credentials.password === testCredentials.admin.password;
+    } else {
+      // For standard users, check if email is in allowed list and use standard password
+      isValidUser = testCredentials.users.includes(credentials.email) && 
+                   credentials.password === 'user123';
+    }
+    
+    if (isValidUser) {
       // Store session in localStorage (prepare for future backend integration)
       const sessionData = {
         email: credentials.email,
@@ -58,7 +72,7 @@ const Login = () => {
 
       navigate('/dashboard');
     } else {
-      setError('Invalid email or password. Please check your credentials.');
+      setError('Access denied. Only authorized personnel can access this system.');
     }
 
     setIsLoading(false);
@@ -140,12 +154,17 @@ const Login = () => {
               />
             </div>
 
-            {/* Demo credentials helper */}
+            {/* Authorized users info */}
             <div className="bg-muted/50 p-3 rounded-lg text-sm">
-              <p className="font-medium mb-2">Demo Credentials:</p>
+              <p className="font-medium mb-2">Access Information:</p>
               <div className="space-y-1 text-muted-foreground">
-                <p><strong>Admin:</strong> admin@demo.com / admin123</p>
-                <p><strong>User:</strong> user@demo.com / user123</p>
+                <p><strong>Admin:</strong> admin@alcazaren.com.gt</p>
+                <p><strong>Standard Users:</strong></p>
+                <ul className="text-xs ml-2 space-y-0.5">
+                  <li>• andrea@alcazaren.com.gt</li>
+                  <li>• julio@alcazaren.com.gt</li>
+                  <li>• alberto@alcazaren.com.gt</li>
+                </ul>
               </div>
             </div>
           </CardContent>
