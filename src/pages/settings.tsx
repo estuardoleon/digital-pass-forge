@@ -4,9 +4,14 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 const Settings = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
 
   return (
     <div className="max-w-xl mx-auto p-6">
@@ -36,15 +41,38 @@ const Settings = () => {
         <CardContent className="space-y-4 pt-6">
           <div className="space-y-2">
             <Label htmlFor="name">Nombre del usuario</Label>
-            <Input id="name" placeholder="Escribe tu nombre completo" />
+            <Input 
+              id="name" 
+              placeholder="Escribe tu nombre completo" 
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="email">Correo electrónico</Label>
-            <Input id="email" type="email" placeholder="usuario@email.com" />
+            <Input 
+              id="email" 
+              type="email" 
+              placeholder="usuario@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
 
-          <Button className="mt-4 w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
+          <Button 
+            className="mt-4 w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+            onClick={() => {
+              localStorage.setItem('userName', name);
+              localStorage.setItem('userEmail', email);
+              setName('');
+              setEmail('');
+              toast({
+                title: "Información guardada",
+                description: "Los cambios se han guardado correctamente.",
+              });
+            }}
+          >
             Guardar Cambios
           </Button>
         </CardContent>
