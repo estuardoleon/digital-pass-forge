@@ -130,7 +130,29 @@ const Members = () => {
   };
 
   const handleViewDetails = (member: any) => {
-    setSelectedMember(member);
+    // Check if this member has saved profile data
+    const savedProfileData = localStorage.getItem('profileData');
+    if (savedProfileData) {
+      const profileData = JSON.parse(savedProfileData);
+      // Merge saved profile data with member data
+      const enrichedMember = {
+        ...member,
+        firstName: member.firstName || profileData.firstName,
+        lastName: member.lastName || profileData.lastName,
+        email: member.email || profileData.email,
+        mobile: member.mobile || profileData.mobile,
+        gender: member.gender || profileData.gender,
+        dateOfBirth: profileData.dateOfBirth,
+        address: profileData.address,
+        city: profileData.city,
+        state: profileData.state,
+        zipCode: profileData.zipCode,
+        country: profileData.country
+      };
+      setSelectedMember(enrichedMember);
+    } else {
+      setSelectedMember(member);
+    }
     setIsDetailsModalOpen(true);
   };
 
@@ -414,26 +436,50 @@ const Members = () => {
                   </div>
                 </TabsContent>
                 
-                <TabsContent value="personal" className="space-y-4 mt-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-sm text-muted-foreground">Full Name</Label>
-                      <p className="text-sm">{`${selectedMember.firstName} ${selectedMember.lastName}`.trim() || "—"}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm text-muted-foreground">Email</Label>
-                      <p className="text-sm">{selectedMember.email || "—"}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm text-muted-foreground">Phone</Label>
-                      <p className="text-sm">{selectedMember.mobile || "—"}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm text-muted-foreground">Gender</Label>
-                      <p className="text-sm">{selectedMember.gender || "—"}</p>
-                    </div>
-                  </div>
-                </TabsContent>
+                 <TabsContent value="personal" className="space-y-4 mt-6">
+                   <div className="grid grid-cols-2 gap-4">
+                     <div>
+                       <Label className="text-sm text-muted-foreground">Full Name</Label>
+                       <p className="text-sm">{`${selectedMember.firstName} ${selectedMember.lastName}`.trim() || "—"}</p>
+                     </div>
+                     <div>
+                       <Label className="text-sm text-muted-foreground">Email</Label>
+                       <p className="text-sm">{selectedMember.email || "—"}</p>
+                     </div>
+                     <div>
+                       <Label className="text-sm text-muted-foreground">Phone</Label>
+                       <p className="text-sm">{selectedMember.mobile || "—"}</p>
+                     </div>
+                     <div>
+                       <Label className="text-sm text-muted-foreground">Gender</Label>
+                       <p className="text-sm">{selectedMember.gender || "—"}</p>
+                     </div>
+                     <div>
+                       <Label className="text-sm text-muted-foreground">Date of Birth</Label>
+                       <p className="text-sm">{selectedMember.dateOfBirth || "—"}</p>
+                     </div>
+                     <div>
+                       <Label className="text-sm text-muted-foreground">Address</Label>
+                       <p className="text-sm">{selectedMember.address || "—"}</p>
+                     </div>
+                     <div>
+                       <Label className="text-sm text-muted-foreground">City</Label>
+                       <p className="text-sm">{selectedMember.city || "—"}</p>
+                     </div>
+                     <div>
+                       <Label className="text-sm text-muted-foreground">State</Label>
+                       <p className="text-sm">{selectedMember.state || "—"}</p>
+                     </div>
+                     <div>
+                       <Label className="text-sm text-muted-foreground">Zip Code</Label>
+                       <p className="text-sm">{selectedMember.zipCode || "—"}</p>
+                     </div>
+                     <div>
+                       <Label className="text-sm text-muted-foreground">Country</Label>
+                       <p className="text-sm">{selectedMember.country || "—"}</p>
+                     </div>
+                   </div>
+                 </TabsContent>
                 
                 <TabsContent value="meta" className="space-y-4 mt-6">
                   <p className="text-sm text-muted-foreground">No meta fields configured.</p>
