@@ -10,59 +10,25 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { User, Edit3, Link, Plus, Upload, Download, Columns3 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { useMemberStore } from "../store/memberStore";
+
+
 
 const Members = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { miembros, addMiembro } = useMemberStore();
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
-  
-  // Sample data with PassKit-style IDs
-  const [members, setMembers] = useState([
-    {
-      id: "15pUWbnyiXAsirwSuNaJGd",
-      externalId: "",
-      firstName: "",
-      lastName: "",
-      email: "",
-      mobile: "",
-      tier: "Bronze",
-      points: 0,
-      gender: "",
-      dateCreated: "2024-01-15",
-      expiryDate: "2025-01-15"
-    },
-    {
-      id: "2Rn69V35FSlTMm6U52CGQo",
-      externalId: "",
-      firstName: "",
-      lastName: "",
-      email: "",
-      mobile: "",
-      tier: "Silver",
-      points: 0,
-      gender: "",
-      dateCreated: "2024-01-20",
-      expiryDate: "2025-01-20"
-    },
-    {
-      id: "3rRdhmJINtJ7Kot7eMExN",
-      externalId: "L00005-CP0159",
-      firstName: "Estuardo Eliud",
-      lastName: "García",
-      email: "estuardo@example.com",
-      mobile: "+502 1234-5678",
-      tier: "Gold",
-      points: 1250,
-      gender: "Male",
-      dateCreated: "2024-01-10",
-      expiryDate: "2025-01-10"
-    }
-  ]);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editMember, setEditMember] = useState<any>(null);
+
 
   const [newMember, setNewMember] = useState({
+    
     tier: "",
     externalId: "",
     points: "",
@@ -96,8 +62,9 @@ const Members = () => {
       dateCreated: new Date().toISOString().split('T')[0],
       expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     };
-    
-    setMembers([...members, member]);
+
+    addMiembro(member);
+
     setNewMember({
       tier: "",
       externalId: "",
@@ -115,6 +82,23 @@ const Members = () => {
     });
   };
 
+  const handleSaveEdit = () => {
+  if (editMember) {
+    const updated = {
+      ...editMember,
+      points: parseInt(editMember.points) || 0,
+    };
+    
+    useMemberStore.getState().updateMiembro(editMember.id, updated); // CORRECTO
+    setIsEditModalOpen(false);
+    toast({
+      title: "Actualización exitosa",
+      description: "Los datos del miembro han sido actualizados.",
+    });
+  }
+};
+
+
   const handleSelectMember = (memberId: string) => {
     setSelectedMembers(prev => 
       prev.includes(memberId) 
@@ -125,16 +109,14 @@ const Members = () => {
 
   const handleSelectAll = () => {
     setSelectedMembers(
-      selectedMembers.length === members.length ? [] : members.map(m => m.id)
+      selectedMembers.length === miembros.length ? [] : miembros.map(m => m.id)
     );
   };
 
   const handleViewDetails = (member: any) => {
-    // Check if this member has saved profile data
     const savedProfileData = localStorage.getItem('profileData');
     if (savedProfileData) {
       const profileData = JSON.parse(savedProfileData);
-      // Merge saved profile data with member data
       const enrichedMember = {
         ...member,
         firstName: member.firstName || profileData.firstName,
@@ -143,11 +125,7 @@ const Members = () => {
         mobile: member.mobile || profileData.mobile,
         gender: member.gender || profileData.gender,
         dateOfBirth: profileData.dateOfBirth,
-        address: profileData.address,
-        city: profileData.city,
-        state: profileData.state,
-        zipCode: profileData.zipCode,
-        country: profileData.country
+        address: profileData.address
       };
       setSelectedMember(enrichedMember);
     } else {
@@ -164,6 +142,11 @@ const Members = () => {
     });
   };
 
+    const handleEditMember = (member: any) => {
+  setEditMember(member);
+  setIsEditModalOpen(true);
+};
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto">
@@ -174,6 +157,86 @@ const Members = () => {
             Back to Dashboard
           </Button>
         </div>
+
+        /*Edicion para la tabla en miembros */
+     <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+    <DialogContent className="max-w-md mx-auto">
+      <DialogHeader>
+        <DialogTitle>Edit Member</DialogTitle>
+      </DialogHeader>
+      {editMember && (
+        <div className="space-y-4 mt-4">
+          <div>
+            <Label>First Name</Label>
+            <Input
+              value={editMember.firstName}
+              onChange={e => setEditMember({ ...editMember, firstName: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Last Name</Label>
+            <Input
+              value={editMember.lastName}
+              onChange={e => setEditMember({ ...editMember, lastName: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Email</Label>
+            <Input
+              value={editMember.email}
+              onChange={e => setEditMember({ ...editMember, email: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Mobile</Label>
+            <Input
+              value={editMember.mobile}
+              onChange={e => setEditMember({ ...editMember, mobile: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Gender</Label>
+            <Select value={editMember.gender} onValueChange={value => setEditMember({ ...editMember, gender: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select gender" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Male">Male</SelectItem>
+                <SelectItem value="Female">Female</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Points</Label>
+            <Input
+              type="number"
+              value={editMember.points}
+              onChange={e => setEditMember({ ...editMember, points: e.target.value })}
+            />
+          </div>
+          <Button
+            className="w-full bg-[#7069e3] hover:bg-[#5f58d1] text-white"
+            onClick={() => {
+              useMemberStore.getState().updateMiembro(editMember.id, {
+                ...editMember,
+                points: parseInt(editMember.points) || 0,
+              });
+              setIsEditModalOpen(false);
+              toast({
+                title: "Actualización exitosa",
+                description: "Los datos del miembro han sido actualizados.",
+              });
+            }}
+          >
+            Save Changes
+          </Button>
+        </div>
+      )}
+    </DialogContent>
+  </Dialog>
+</div>
+
 
         {/* Action Buttons */}
         <div className="flex gap-3 mb-6">
@@ -313,7 +376,7 @@ const Members = () => {
               <TableRow className="border-b bg-muted/50">
                 <TableHead className="w-12">
                   <Checkbox
-                    checked={selectedMembers.length === members.length}
+                    checked={selectedMembers.length === miembros.length}
                     onCheckedChange={handleSelectAll}
                   />
                 </TableHead>
@@ -324,7 +387,7 @@ const Members = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {members.map((member) => (
+              {miembros.map((member) => (
                 <TableRow key={member.id} className="hover:bg-muted/50">
                   <TableCell>
                     <Checkbox
@@ -346,12 +409,14 @@ const Members = () => {
                         <User className="w-4 h-4 text-muted-foreground" />
                       </Button>
                       <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 hover:bg-muted"
-                      >
-                        <Edit3 className="w-4 h-4 text-muted-foreground" />
-                      </Button>
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditMember(member)}
+                      className="h-8 w-8 p-0 hover:bg-muted"
+>
+                     <Edit3 className="w-4 h-4 text-muted-foreground" />
+                    </Button>
+
                       <Button
                         variant="ghost"
                         size="sm"
@@ -370,7 +435,7 @@ const Members = () => {
           {selectedMembers.length > 0 && (
             <div className="border-t bg-muted/30 p-4 flex items-center justify-between">
               <span className="text-sm text-muted-foreground">
-                {selectedMembers.length} of {members.length} selected
+                {selectedMembers.length} of {miembros.length} selected
               </span>
               <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
                 DELETE
@@ -489,8 +554,8 @@ const Members = () => {
           </DialogContent>
         </Dialog>
       </div>
-    </div>
+    
   );
-};
+};  
 
 export default Members;
