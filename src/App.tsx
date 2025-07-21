@@ -9,6 +9,7 @@ import Login from "./components/Login";
 import NotFound from "./pages/NotFound";
 import Settings from "./pages/settings";
 import Profile from "./pages/profile";
+import Members from "./pages/Members";
 
 
 const queryClient = new QueryClient();
@@ -24,11 +25,11 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/members" element={<Members />} />
 
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/profile" element={<Profile />} />
+      
 
         </Routes>
       </BrowserRouter>
