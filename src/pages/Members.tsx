@@ -158,7 +158,7 @@ const Members = () => {
           </Button>
         </div>
 
-        /*Edicion para la tabla en miembros */
+  
      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
     <DialogContent className="max-w-md mx-auto">
       <DialogHeader>
