@@ -1,54 +1,494 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { User, Edit3, Link, Plus, Upload, Download, Columns3 } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useToast } from "@/hooks/use-toast";
 
 const Members = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<any>(null);
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  
+  // Sample data with PassKit-style IDs
+  const [members, setMembers] = useState([
+    {
+      id: "15pUWbnyiXAsirwSuNaJGd",
+      externalId: "",
+      firstName: "",
+      lastName: "",
+      email: "",
+      mobile: "",
+      tier: "Bronze",
+      points: 0,
+      gender: "",
+      dateCreated: "2024-01-15",
+      expiryDate: "2025-01-15"
+    },
+    {
+      id: "2Rn69V35FSlTMm6U52CGQo",
+      externalId: "",
+      firstName: "",
+      lastName: "",
+      email: "",
+      mobile: "",
+      tier: "Silver",
+      points: 0,
+      gender: "",
+      dateCreated: "2024-01-20",
+      expiryDate: "2025-01-20"
+    },
+    {
+      id: "3rRdhmJINtJ7Kot7eMExN",
+      externalId: "L00005-CP0159",
+      firstName: "Estuardo Eliud",
+      lastName: "García",
+      email: "estuardo@example.com",
+      mobile: "+502 1234-5678",
+      tier: "Gold",
+      points: 1250,
+      gender: "Male",
+      dateCreated: "2024-01-10",
+      expiryDate: "2025-01-10"
+    }
+  ]);
 
-  // Puedes traer los miembros desde React Context, Zustand, localStorage, o más adelante, de MongoDB
-  const dummyMembers = JSON.parse(localStorage.getItem("clientes") || "[]");
+  const [newMember, setNewMember] = useState({
+    tier: "",
+    externalId: "",
+    points: "",
+    firstName: "",
+    lastName: "",
+    email: "",
+    mobile: "",
+    gender: ""
+  });
+
+  const generatePasskitId = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < 18; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
+
+  const handleAddMember = () => {
+    const member = {
+      id: generatePasskitId(),
+      externalId: newMember.externalId,
+      firstName: newMember.firstName,
+      lastName: newMember.lastName,
+      email: newMember.email,
+      mobile: newMember.mobile,
+      tier: newMember.tier,
+      points: parseInt(newMember.points) || 0,
+      gender: newMember.gender,
+      dateCreated: new Date().toISOString().split('T')[0],
+      expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    };
+    
+    setMembers([...members, member]);
+    setNewMember({
+      tier: "",
+      externalId: "",
+      points: "",
+      firstName: "",
+      lastName: "",
+      email: "",
+      mobile: "",
+      gender: ""
+    });
+    setIsAddModalOpen(false);
+    toast({
+      title: "Member added successfully",
+      description: "The new member has been added to the system."
+    });
+  };
+
+  const handleSelectMember = (memberId: string) => {
+    setSelectedMembers(prev => 
+      prev.includes(memberId) 
+        ? prev.filter(id => id !== memberId)
+        : [...prev, memberId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    setSelectedMembers(
+      selectedMembers.length === members.length ? [] : members.map(m => m.id)
+    );
+  };
+
+  const handleViewDetails = (member: any) => {
+    // Check if this member has saved profile data
+    const savedProfileData = localStorage.getItem('profileData');
+    if (savedProfileData) {
+      const profileData = JSON.parse(savedProfileData);
+      // Merge saved profile data with member data
+      const enrichedMember = {
+        ...member,
+        firstName: member.firstName || profileData.firstName,
+        lastName: member.lastName || profileData.lastName,
+        email: member.email || profileData.email,
+        mobile: member.mobile || profileData.mobile,
+        gender: member.gender || profileData.gender,
+        dateOfBirth: profileData.dateOfBirth,
+        address: profileData.address,
+        city: profileData.city,
+        state: profileData.state,
+        zipCode: profileData.zipCode,
+        country: profileData.country
+      };
+      setSelectedMember(enrichedMember);
+    } else {
+      setSelectedMember(member);
+    }
+    setIsDetailsModalOpen(true);
+  };
+
+  const handleCopyLink = (memberId: string) => {
+    navigator.clipboard.writeText(`https://pass.example.com/${memberId}`);
+    toast({
+      title: "Link copied",
+      description: "Pass URL has been copied to clipboard."
+    });
+  };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Miembros Registrados</h1>
-        <Button variant="outline" onClick={() => navigate("/dashboard")}>
-          Regresar
-        </Button>
-      </div>
+    <div className="min-h-screen bg-background p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-semibold text-foreground">Members</h1>
+          <Button variant="outline" onClick={() => navigate("/dashboard")}>
+            Back to Dashboard
+          </Button>
+        </div>
 
-      {dummyMembers.length === 0 ? (
-        <p className="text-gray-500">No hay miembros registrados aún.</p>
-      ) : (
-        <table className="w-full border rounded">
-          <thead className="bg-gray-100 text-left">
-            <tr>
-              <th className="p-3">✔</th>
-              <th className="p-3">ID Externo</th>
-              <th className="p-3 text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {dummyMembers.map((m: any, i: number) => (
-              <tr key={i} className="border-t">
-                <td className="p-3">
-                  <input type="checkbox" />
-                </td>
-                <td className="p-3 font-mono">{m.idExterno}</td>
-                <td className="p-3 flex justify-end gap-3">
-                  <button className="text-gray-600 hover:text-blue-600">👤</button>
-                  <button className="text-gray-600 hover:text-green-600">📝</button>
-                  <button
-                    className="text-gray-600 hover:text-purple-600"
-                    onClick={() => navigator.clipboard.writeText(m.idExterno)}
-                  >
-                    🔗
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+        {/* Action Buttons */}
+        <div className="flex gap-3 mb-6">
+          <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-[#7069e3] hover:bg-[#5f58d1] text-white">
+                <Plus className="w-4 h-4 mr-2" />
+                ADD MEMBER
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md mx-auto">
+              <DialogHeader>
+                <DialogTitle>Add New Member</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 mt-4">
+                <div>
+                  <Label htmlFor="tier">Tier</Label>
+                  <Select value={newMember.tier} onValueChange={(value) => setNewMember({...newMember, tier: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select tier" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Bronze">Bronze</SelectItem>
+                      <SelectItem value="Silver">Silver</SelectItem>
+                      <SelectItem value="Gold">Gold</SelectItem>
+                      <SelectItem value="Black">Black</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="externalId">External ID</Label>
+                  <Input
+                    id="externalId"
+                    value={newMember.externalId}
+                    onChange={(e) => setNewMember({...newMember, externalId: e.target.value})}
+                    placeholder="Enter external ID"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="points">Points</Label>
+                  <Input
+                    id="points"
+                    type="number"
+                    value={newMember.points}
+                    onChange={(e) => setNewMember({...newMember, points: e.target.value})}
+                    placeholder="0"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    value={newMember.firstName}
+                    onChange={(e) => setNewMember({...newMember, firstName: e.target.value})}
+                    placeholder="Enter first name"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    value={newMember.lastName}
+                    onChange={(e) => setNewMember({...newMember, lastName: e.target.value})}
+                    placeholder="Enter last name"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={newMember.email}
+                    onChange={(e) => setNewMember({...newMember, email: e.target.value})}
+                    placeholder="Enter email"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="mobile">Mobile Number</Label>
+                  <Input
+                    id="mobile"
+                    value={newMember.mobile}
+                    onChange={(e) => setNewMember({...newMember, mobile: e.target.value})}
+                    placeholder="Enter mobile number"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="gender">Gender</Label>
+                  <Select value={newMember.gender} onValueChange={(value) => setNewMember({...newMember, gender: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button 
+                  onClick={handleAddMember} 
+                  className="w-full bg-[#7069e3] hover:bg-[#5f58d1] text-white"
+                >
+                  Add
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Button variant="outline" className="text-muted-foreground">
+            <Upload className="w-4 h-4 mr-2" />
+            IMPORT CSV
+          </Button>
+
+          <Button variant="outline" className="text-muted-foreground">
+            <Download className="w-4 h-4 mr-2" />
+            EXPORT CSV
+          </Button>
+
+          <Button variant="outline" className="text-muted-foreground">
+            <Columns3 className="w-4 h-4 mr-2" />
+            COLUMNS
+          </Button>
+        </div>
+
+        {/* Members Table */}
+        <div className="bg-card rounded-lg shadow-sm border">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-b bg-muted/50">
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={selectedMembers.length === members.length}
+                    onCheckedChange={handleSelectAll}
+                  />
+                </TableHead>
+                <TableHead className="font-medium text-muted-foreground">PASSKIT ID</TableHead>
+                <TableHead className="font-medium text-muted-foreground">EXTERNAL ID</TableHead>
+                <TableHead className="font-medium text-muted-foreground">FIRST NAME</TableHead>
+                <TableHead className="font-medium text-muted-foreground text-right">ACTIONS</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {members.map((member) => (
+                <TableRow key={member.id} className="hover:bg-muted/50">
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedMembers.includes(member.id)}
+                      onCheckedChange={() => handleSelectMember(member.id)}
+                    />
+                  </TableCell>
+                  <TableCell className="font-mono text-sm">{member.id}</TableCell>
+                  <TableCell className="text-sm">{member.externalId}</TableCell>
+                  <TableCell className="text-sm">{member.firstName}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewDetails(member)}
+                        className="h-8 w-8 p-0 hover:bg-muted"
+                      >
+                        <User className="w-4 h-4 text-muted-foreground" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 hover:bg-muted"
+                      >
+                        <Edit3 className="w-4 h-4 text-muted-foreground" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleCopyLink(member.id)}
+                        className="h-8 w-8 p-0 hover:bg-muted"
+                      >
+                        <Link className="w-4 h-4 text-muted-foreground" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+
+          {selectedMembers.length > 0 && (
+            <div className="border-t bg-muted/30 p-4 flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">
+                {selectedMembers.length} of {members.length} selected
+              </span>
+              <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                DELETE
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Member Details Modal */}
+        <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <div className="flex justify-between items-center">
+                <DialogTitle>Member Details</DialogTitle>
+                <div className="flex gap-2">
+                  <Button size="sm" className="bg-[#7069e3] hover:bg-[#5f58d1] text-white">
+                    Update
+                  </Button>
+                  <Button size="sm" variant="outline">
+                    Resend Welcome Email
+                  </Button>
+                  <Button size="sm" variant="outline">
+                    Visit Pass URL
+                  </Button>
+                </div>
+              </div>
+            </DialogHeader>
+            
+            {selectedMember && (
+              <Tabs defaultValue="details" className="mt-4">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="details">Details</TabsTrigger>
+                  <TabsTrigger value="personal">Personal Info</TabsTrigger>
+                  <TabsTrigger value="meta">Meta Fields</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="details" className="space-y-4 mt-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Member ID</Label>
+                      <p className="font-mono text-sm">{selectedMember.id}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Tier</Label>
+                      <p className="text-sm">{selectedMember.tier}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-muted-foreground">External ID</Label>
+                      <p className="text-sm">{selectedMember.externalId || "—"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Points</Label>
+                      <p className="text-sm">{selectedMember.points}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Date Created</Label>
+                      <p className="text-sm">{selectedMember.dateCreated}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Expiry Date</Label>
+                      <p className="text-sm">{selectedMember.expiryDate}</p>
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                 <TabsContent value="personal" className="space-y-4 mt-6">
+                   <div className="grid grid-cols-2 gap-4">
+                     <div>
+                       <Label className="text-sm text-muted-foreground">Full Name</Label>
+                       <p className="text-sm">{`${selectedMember.firstName} ${selectedMember.lastName}`.trim() || "—"}</p>
+                     </div>
+                     <div>
+                       <Label className="text-sm text-muted-foreground">Email</Label>
+                       <p className="text-sm">{selectedMember.email || "—"}</p>
+                     </div>
+                     <div>
+                       <Label className="text-sm text-muted-foreground">Phone</Label>
+                       <p className="text-sm">{selectedMember.mobile || "—"}</p>
+                     </div>
+                     <div>
+                       <Label className="text-sm text-muted-foreground">Gender</Label>
+                       <p className="text-sm">{selectedMember.gender || "—"}</p>
+                     </div>
+                     <div>
+                       <Label className="text-sm text-muted-foreground">Date of Birth</Label>
+                       <p className="text-sm">{selectedMember.dateOfBirth || "—"}</p>
+                     </div>
+                     <div>
+                       <Label className="text-sm text-muted-foreground">Address</Label>
+                       <p className="text-sm">{selectedMember.address || "—"}</p>
+                     </div>
+                     <div>
+                       <Label className="text-sm text-muted-foreground">City</Label>
+                       <p className="text-sm">{selectedMember.city || "—"}</p>
+                     </div>
+                     <div>
+                       <Label className="text-sm text-muted-foreground">State</Label>
+                       <p className="text-sm">{selectedMember.state || "—"}</p>
+                     </div>
+                     <div>
+                       <Label className="text-sm text-muted-foreground">Zip Code</Label>
+                       <p className="text-sm">{selectedMember.zipCode || "—"}</p>
+                     </div>
+                     <div>
+                       <Label className="text-sm text-muted-foreground">Country</Label>
+                       <p className="text-sm">{selectedMember.country || "—"}</p>
+                     </div>
+                   </div>
+                 </TabsContent>
+                
+                <TabsContent value="meta" className="space-y-4 mt-6">
+                  <p className="text-sm text-muted-foreground">No meta fields configured.</p>
+                </TabsContent>
+              </Tabs>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 };
