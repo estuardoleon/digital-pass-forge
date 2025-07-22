@@ -11,13 +11,14 @@ import { User, Edit3, Link, Plus, Upload, Download, Columns3 } from "lucide-reac
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useMemberStore } from "../store/memberStore";
-
+import { Trash2 } from "lucide-react";
 
 
 const Members = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { miembros, addMiembro } = useMemberStore();
+  const { miembros, addMiembro, deleteMiembro } = useMemberStore();
+
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -146,6 +147,18 @@ const Members = () => {
   setEditMember(member);
   setIsEditModalOpen(true);
 };
+
+const handleDeleteSelected = () => {
+  selectedMembers.forEach((id) => {
+    useMemberStore.getState().deleteMiembro(id);
+  });
+  setSelectedMembers([]);
+  toast({
+    title: "Miembros eliminados",
+    description: `${selectedMembers.length} miembro(s) fueron eliminados.`,
+  });
+};
+
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -369,6 +382,7 @@ const Members = () => {
           </Button>
         </div>
 
+
         {/* Members Table */}
         <div className="bg-card rounded-lg shadow-sm border">
           <Table>
@@ -432,16 +446,27 @@ const Members = () => {
             </TableBody>
           </Table>
 
-          {selectedMembers.length > 0 && (
-            <div className="border-t bg-muted/30 p-4 flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
-                {selectedMembers.length} of {miembros.length} selected
-              </span>
-              <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
-                DELETE
-              </Button>
-            </div>
-          )}
+        {selectedMembers.length > 0 && (
+  <div className="w-full flex justify-end mt-4 pr-4 mb-2">
+  <Button
+    variant="destructive"
+    size="sm"
+    className="px-3 py-1.5 text-sm flex items-center gap-1 shadow-sm"
+      onClick={() => {
+        if (
+          window.confirm(
+            `¿Estás seguro que deseas eliminar ${selectedMembers.length} miembro(s)?`
+          )
+        ) {
+          handleDeleteSelected();
+        }
+      }}
+    >
+      <Trash2 size={16} />
+      DELETE
+    </Button>
+  </div>
+)}
         </div>
 
         {/* Member Details Modal */}
@@ -531,18 +556,7 @@ const Members = () => {
                        <Label className="text-sm text-muted-foreground">City</Label>
                        <p className="text-sm">{selectedMember.city || "—"}</p>
                      </div>
-                     <div>
-                       <Label className="text-sm text-muted-foreground">State</Label>
-                       <p className="text-sm">{selectedMember.state || "—"}</p>
-                     </div>
-                     <div>
-                       <Label className="text-sm text-muted-foreground">Zip Code</Label>
-                       <p className="text-sm">{selectedMember.zipCode || "—"}</p>
-                     </div>
-                     <div>
-                       <Label className="text-sm text-muted-foreground">Country</Label>
-                       <p className="text-sm">{selectedMember.country || "—"}</p>
-                     </div>
+      
                    </div>
                  </TabsContent>
                 

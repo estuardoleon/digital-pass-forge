@@ -23,7 +23,7 @@ const Profile = () => {
     idExterno: ""
   });
 
-  const { addMiembro } = useMemberStore();
+  const { addMiembro, miembros, deleteMiembro } = useMemberStore();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -48,9 +48,7 @@ const Profile = () => {
       gender: formData.genero,
       address: "",
       city: "",
-      state: "",
-      zipCode: "",
-      country: "",
+  
       dateCreated: new Date().toISOString(),
       expiryDate: ""
     };
@@ -159,9 +157,10 @@ const Profile = () => {
             <Button onClick={handleAdvance}>Avanzar</Button>
           </div>
         </div>
+
       </div>
     </div>
-  );
+    );
 };
 
 export default Profile;
