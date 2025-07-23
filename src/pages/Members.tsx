@@ -1,4 +1,4 @@
-import { useState } from "react";
+import {useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
@@ -10,14 +10,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { User, Edit3, Link, Plus, Upload, Download, Columns3 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { useMemberStore } from "../store/memberStore";
 import { Trash2 } from "lucide-react";
 
 
 const Members = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { miembros, addMiembro, deleteMiembro } = useMemberStore();
 
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -26,6 +24,7 @@ const Members = () => {
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editMember, setEditMember] = useState<any>(null);
+  const [membersFromBackend, setMembersFromBackend] = useState([]);
 
 
   const [newMember, setNewMember] = useState({
@@ -39,6 +38,19 @@ const Members = () => {
     mobile: "",
     gender: ""
   });
+
+ useEffect(() => {
+  fetch("http://localhost:3900/api/members")
+    .then((res) => res.json())
+    .then((data) => {
+      console.log("🟢 Miembros desde backend:", data);
+      setMembersFromBackend(data);
+    })
+    .catch((error) => {
+      console.error("❌ Error al cargar miembros:", error);
+    });
+}, []);
+
 
   const generatePasskitId = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -64,7 +76,71 @@ const Members = () => {
       expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     };
 
-    addMiembro(member);
+    const handleAddMember = async () => {
+  const { firstName, lastName, email, tier, mobile } = newMember;
+
+  // Validación básica
+  if (!firstName || !lastName || !email || !tier || !mobile) {
+    toast({
+      title: "Campos incompletos",
+      description: "Por favor, completa todos los campos obligatorios.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  const member = {
+    ...newMember,
+    points: parseInt(newMember.points) || 0,
+    dateCreated: new Date().toISOString().split('T')[0],
+    expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  };
+
+  try {
+    const res = await fetch("http://localhost:3900/api/members", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(member),
+    });
+
+    const data = await res.json();
+    console.log("✅ Miembro guardado:", data);
+
+    toast({
+      title: "Miembro agregado",
+      description: "El nuevo miembro fue guardado exitosamente.",
+    });
+
+    setIsAddModalOpen(false); // cerrar modal
+
+    setNewMember({
+      tier: "",
+      externalId: "",
+      points: "",
+      firstName: "",
+      lastName: "",
+      email: "",
+      mobile: "",
+      gender: ""
+    });
+
+    // Refrescar tabla
+    const updated = await fetch("http://localhost:3900/api/members");
+    const updatedData = await updated.json();
+    setMembersFromBackend(updatedData);
+
+  } catch (error) {
+    console.error("❌ Error al guardar:", error);
+    toast({
+      title: "Error",
+      description: "No se pudo guardar el nuevo miembro.",
+    });
+  }
+};
+
+
 
     setNewMember({
       tier: "",
@@ -90,12 +166,6 @@ const Members = () => {
       points: parseInt(editMember.points) || 0,
     };
     
-    useMemberStore.getState().updateMiembro(editMember.id, updated); // CORRECTO
-    setIsEditModalOpen(false);
-    toast({
-      title: "Actualización exitosa",
-      description: "Los datos del miembro han sido actualizados.",
-    });
   }
 };
 
@@ -110,30 +180,36 @@ const Members = () => {
 
   const handleSelectAll = () => {
     setSelectedMembers(
-      selectedMembers.length === miembros.length ? [] : miembros.map(m => m.id)
+      selectedMembers.length === membersFromBackend.length
+  ? []
+  : membersFromBackend.map((m: any) => m.id)
+
     );
   };
 
-  const handleViewDetails = (member: any) => {
-    const savedProfileData = localStorage.getItem('profileData');
-    if (savedProfileData) {
-      const profileData = JSON.parse(savedProfileData);
-      const enrichedMember = {
-        ...member,
-        firstName: member.firstName || profileData.firstName,
-        lastName: member.lastName || profileData.lastName,
-        email: member.email || profileData.email,
-        mobile: member.mobile || profileData.mobile,
-        gender: member.gender || profileData.gender,
-        dateOfBirth: profileData.dateOfBirth,
-        address: profileData.address
-      };
-      setSelectedMember(enrichedMember);
-    } else {
-      setSelectedMember(member);
-    }
-    setIsDetailsModalOpen(true);
-  };
+const handleViewDetails = (member: any) => {
+  const savedProfileData = localStorage.getItem('profileData');
+  if (savedProfileData) {
+    const profileData = JSON.parse(savedProfileData);
+    const enrichedMember = {
+      ...member,
+      firstName: member.firstName || profileData.firstName,
+      lastName: member.lastName || profileData.lastName,
+      email: member.email || profileData.email,
+      mobile: member.mobile || profileData.mobile,
+      gender: member.gender || profileData.gender,
+      dateOfBirth: member.dateOfBirth || profileData.dateOfBirth,
+      address: member.address || profileData.address,
+      tier: member.tier || profileData.tier,
+      points: member.points || profileData.points,
+      idExterno: member.idExterno || profileData.idExterno
+    };
+    setSelectedMember(enrichedMember);
+  } else {
+    setSelectedMember(member);
+  }
+  setIsDetailsModalOpen(true);
+};
 
   const handleCopyLink = (memberId: string) => {
     navigator.clipboard.writeText(`https://pass.example.com/${memberId}`);
@@ -148,16 +224,35 @@ const Members = () => {
   setIsEditModalOpen(true);
 };
 
-const handleDeleteSelected = () => {
-  selectedMembers.forEach((id) => {
-    useMemberStore.getState().deleteMiembro(id);
-  });
-  setSelectedMembers([]);
-  toast({
-    title: "Miembros eliminados",
-    description: `${selectedMembers.length} miembro(s) fueron eliminados.`,
-  });
+const handleDeleteSelected = async () => {
+  try {
+    // Ejecutar DELETE por cada ID seleccionado
+    for (const id of selectedMembers) {
+      await fetch(`http://localhost:3900/api/members/${id}`, {
+        method: "DELETE",
+      });
+    }
+
+    toast({
+      title: "Miembros eliminados",
+      description: `${selectedMembers.length} miembro(s) fueron eliminados.`,
+    });
+
+    // Refresca la tabla después de eliminar
+    setSelectedMembers([]);
+    // vuelve a pedir los datos actualizados
+    const res = await fetch("http://localhost:3900/api/members");
+    const updatedMembers = await res.json();
+    setMembersFromBackend(updatedMembers);
+  } catch (error) {
+    console.error("❌ Error al eliminar:", error);
+    toast({
+      title: "Error",
+      description: "No se pudieron eliminar los miembros.",
+    });
+  }
 };
+
 
 
   return (
@@ -228,22 +323,47 @@ const handleDeleteSelected = () => {
               onChange={e => setEditMember({ ...editMember, points: e.target.value })}
             />
           </div>
-          <Button
-            className="w-full bg-[#7069e3] hover:bg-[#5f58d1] text-white"
-            onClick={() => {
-              useMemberStore.getState().updateMiembro(editMember.id, {
-                ...editMember,
-                points: parseInt(editMember.points) || 0,
-              });
-              setIsEditModalOpen(false);
-              toast({
-                title: "Actualización exitosa",
-                description: "Los datos del miembro han sido actualizados.",
-              });
-            }}
-          >
-            Save Changes
-          </Button>
+         <Button
+  className="w-full bg-[#7069e3] hover:bg-[#5f58d1] text-white"
+  onClick={async () => {
+    try {
+      const res = await fetch(`http://localhost:3900/api/members/${editMember.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...editMember,
+          points: parseInt(editMember.points) || 0,
+        }),
+      });
+
+      const data = await res.json();
+      console.log("📝 Miembro actualizado:", data);
+
+      toast({
+        title: "Actualización exitosa",
+        description: "Los datos del miembro han sido actualizados.",
+      });
+
+      setIsEditModalOpen(false);
+
+      // Refrescar la tabla con los datos actualizados
+      const updated = await fetch("http://localhost:3900/api/members");
+      const updatedData = await updated.json();
+      setMembersFromBackend(updatedData);
+    } catch (error) {
+      console.error("❌ Error al actualizar miembro:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el miembro.",
+      });
+    }
+  }}
+>
+  Save Changes
+</Button>
+
         </div>
       )}
     </DialogContent>
@@ -266,7 +386,10 @@ const handleDeleteSelected = () => {
               </DialogHeader>
               <div className="space-y-4 mt-4">
                 <div>
-                  <Label htmlFor="tier">Tier</Label>
+                  <Label htmlFor="tier">
+                Tier <span className="text-red-500">*</span>
+                  </Label>
+
                   <Select value={newMember.tier} onValueChange={(value) => setNewMember({...newMember, tier: value})}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select tier" />
@@ -302,9 +425,12 @@ const handleDeleteSelected = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor="firstName">First Name</Label>
+                  <Label htmlFor="firstName">
+                     First Name <span className="text-red-500">*</span>
+                  </Label>
                   <Input
                     id="firstName"
+                    name="firstName"
                     value={newMember.firstName}
                     onChange={(e) => setNewMember({...newMember, firstName: e.target.value})}
                     placeholder="Enter first name"
@@ -312,9 +438,12 @@ const handleDeleteSelected = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor="lastName">Last Name</Label>
+                  <Label htmlFor="lastName">
+                    Last Name <span className="text-red-500">*</span>
+                    </Label>
                   <Input
                     id="lastName"
+                    name="lastName"
                     value={newMember.lastName}
                     onChange={(e) => setNewMember({...newMember, lastName: e.target.value})}
                     placeholder="Enter last name"
@@ -322,9 +451,13 @@ const handleDeleteSelected = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">
+                Email <span className="text-red-500">*</span>
+                </Label>
+
                   <Input
                     id="email"
+                    name="email"
                     type="email"
                     value={newMember.email}
                     onChange={(e) => setNewMember({...newMember, email: e.target.value})}
@@ -333,9 +466,13 @@ const handleDeleteSelected = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor="mobile">Mobile Number</Label>
+                  <Label htmlFor="mobile">
+                   Mobile Number <span className="text-red-500">*</span>
+                  </Label>
+
                   <Input
                     id="mobile"
+                    name="mobile"
                     value={newMember.mobile}
                     onChange={(e) => setNewMember({...newMember, mobile: e.target.value})}
                     placeholder="Enter mobile number"
@@ -390,7 +527,8 @@ const handleDeleteSelected = () => {
               <TableRow className="border-b bg-muted/50">
                 <TableHead className="w-12">
                   <Checkbox
-                    checked={selectedMembers.length === miembros.length}
+                    checked={selectedMembers.length === membersFromBackend.length
+}
                     onCheckedChange={handleSelectAll}
                   />
                 </TableHead>
@@ -401,48 +539,48 @@ const handleDeleteSelected = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {miembros.map((member) => (
-                <TableRow key={member.id} className="hover:bg-muted/50">
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedMembers.includes(member.id)}
-                      onCheckedChange={() => handleSelectMember(member.id)}
-                    />
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">{member.id}</TableCell>
-                  <TableCell className="text-sm">{member.externalId}</TableCell>
-                  <TableCell className="text-sm">{member.firstName}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleViewDetails(member)}
-                        className="h-8 w-8 p-0 hover:bg-muted"
-                      >
-                        <User className="w-4 h-4 text-muted-foreground" />
-                      </Button>
-                      <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEditMember(member)}
-                      className="h-8 w-8 p-0 hover:bg-muted"
->
-                     <Edit3 className="w-4 h-4 text-muted-foreground" />
-                    </Button>
+             {membersFromBackend.map((member: any) => (
+  <TableRow key={member.id} className="hover:bg-muted/50">
+    <TableCell>
+      <Checkbox
+        checked={selectedMembers.includes(member.id)}
+        onCheckedChange={() => handleSelectMember(member.id)}
+      />
+    </TableCell>
+    <TableCell className="font-mono text-sm">{member.id}</TableCell>
+    <TableCell className="text-sm">{member.idExterno}</TableCell>
+    <TableCell className="text-sm">{member.nombre}</TableCell>
+    <TableCell className="text-right">
+      <div className="flex justify-end gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => handleViewDetails(member)}
+          className="h-8 w-8 p-0 hover:bg-muted"
+        >
+          <User className="w-4 h-4 text-muted-foreground" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => handleEditMember(member)}
+          className="h-8 w-8 p-0 hover:bg-muted"
+        >
+          <Edit3 className="w-4 h-4 text-muted-foreground" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => handleCopyLink(member.idExterno)}
+          className="h-8 w-8 p-0 hover:bg-muted"
+        >
+          <Link className="w-4 h-4 text-muted-foreground" />
+        </Button>
+      </div>
+    </TableCell>
+  </TableRow>
+))}
 
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCopyLink(member.id)}
-                        className="h-8 w-8 p-0 hover:bg-muted"
-                      >
-                        <Link className="w-4 h-4 text-muted-foreground" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
             </TableBody>
           </Table>
 

@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { nanoid } from "nanoid";
-import { useMemberStore } from "../store/memberStore";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -23,54 +21,47 @@ const Profile = () => {
     idExterno: ""
   });
 
-  const { addMiembro, miembros, deleteMiembro } = useMemberStore();
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleGuardar = () => {
-    if (!formData.nombre || !formData.codigoCliente) {
-      alert("Por favor llena al menos el nombre y código del cliente.");
-      return;
-    }
-
-    const nuevoMiembro = {
-      id: nanoid(12),
-      externalId: formData.idExterno || nanoid(8),
-      firstName: formData.nombre,
-      lastName: formData.apellido,
-      dateOfBirth: formData.fechaNacimiento,
-      email: formData.email,
-      mobile: formData.telefono,
-      tier: formData.tipoCliente,
-      points: Number(formData.puntos),
-      gender: formData.genero,
-      address: "",
-      city: "",
-  
-      dateCreated: new Date().toISOString(),
-      expiryDate: ""
+  const handleGuardar = async () => {
+    const nuevoCliente = {
+      ...formData,
+      puntos: parseInt(formData.puntos) || 0,
     };
 
-    addMiembro(nuevoMiembro);
+    try {
+      const res = await fetch("http://localhost:3900/api/members", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(nuevoCliente),
+      });
 
-    setFormData({
-      nombre: "",
-      apellido: "",
-      fechaNacimiento: "",
-      codigoCliente: "",
-      codigoCampaña: "",
-      tipoCliente: "",
-      email: "",
-      telefono: "",
-      genero: "",
-      puntos: "",
-      idExterno: ""
-    });
+      const data = await res.json();
+      console.log("✅ Cliente guardado:", data);
+      alert("Cliente guardado en MySQL con éxito");
 
-    alert("¡Miembro guardado exitosamente!");
-    navigate("/members");
+      // limpiar formulario
+      setFormData({
+        nombre: "",
+        apellido: "",
+        fechaNacimiento: "",
+        codigoCliente: "",
+        codigoCampaña: "",
+        tipoCliente: "",
+        email: "",
+        telefono: "",
+        genero: "",
+        puntos: "",
+        idExterno: ""
+      });
+
+      navigate("/members");
+    } catch (err) {
+      console.error("❌ Error al guardar:", err);
+      alert("Hubo un error al guardar el cliente");
+    }
   };
 
   const handleAdvance = () => {
@@ -160,7 +151,7 @@ const Profile = () => {
 
       </div>
     </div>
-    );
+  );
 };
 
 export default Profile;
