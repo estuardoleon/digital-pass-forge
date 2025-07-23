@@ -61,22 +61,7 @@ const Members = () => {
     return result;
   };
 
-  const handleAddMember = () => {
-    const member = {
-      id: generatePasskitId(),
-      externalId: newMember.externalId,
-      firstName: newMember.firstName,
-      lastName: newMember.lastName,
-      email: newMember.email,
-      mobile: newMember.mobile,
-      tier: newMember.tier,
-      points: parseInt(newMember.points) || 0,
-      gender: newMember.gender,
-      dateCreated: new Date().toISOString().split('T')[0],
-      expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-    };
-
-    const handleAddMember = async () => {
+  const handleAddMember = async () => {
   const { firstName, lastName, email, tier, mobile } = newMember;
 
   // Validación básica
@@ -89,31 +74,36 @@ const Members = () => {
     return;
   }
 
+  // Crear objeto de miembro
   const member = {
-    ...newMember,
+    id: generatePasskitId(),
+    externalId: null, // Será generado por el backend
+    firstName,
+    lastName,
+    email,
+    mobile,
+    tier,
+    gender: newMember.gender,
     points: parseInt(newMember.points) || 0,
-    dateCreated: new Date().toISOString().split('T')[0],
-    expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    dateCreated: new Date().toISOString().split("T")[0],
+    expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
   };
 
   try {
     const res = await fetch("http://localhost:3900/api/members", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(member),
     });
 
-    const data = await res.json();
-    console.log("✅ Miembro guardado:", data);
+    if (!res.ok) throw new Error("Error al guardar");
 
     toast({
       title: "Miembro agregado",
       description: "El nuevo miembro fue guardado exitosamente.",
     });
 
-    setIsAddModalOpen(false); // cerrar modal
+    setIsAddModalOpen(false);
 
     setNewMember({
       tier: "",
@@ -126,7 +116,7 @@ const Members = () => {
       gender: ""
     });
 
-    // Refrescar tabla
+    // Refrescar miembros
     const updated = await fetch("http://localhost:3900/api/members");
     const updatedData = await updated.json();
     setMembersFromBackend(updatedData);
@@ -136,28 +126,11 @@ const Members = () => {
     toast({
       title: "Error",
       description: "No se pudo guardar el nuevo miembro.",
+      variant: "destructive",
     });
   }
 };
 
-
-
-    setNewMember({
-      tier: "",
-      externalId: "",
-      points: "",
-      firstName: "",
-      lastName: "",
-      email: "",
-      mobile: "",
-      gender: ""
-    });
-    setIsAddModalOpen(false);
-    toast({
-      title: "Member added successfully",
-      description: "The new member has been added to the system."
-    });
-  };
 
   const handleSaveEdit = () => {
   if (editMember) {
@@ -188,28 +161,11 @@ const Members = () => {
   };
 
 const handleViewDetails = (member: any) => {
-  const savedProfileData = localStorage.getItem('profileData');
-  if (savedProfileData) {
-    const profileData = JSON.parse(savedProfileData);
-    const enrichedMember = {
-      ...member,
-      firstName: member.firstName || profileData.firstName,
-      lastName: member.lastName || profileData.lastName,
-      email: member.email || profileData.email,
-      mobile: member.mobile || profileData.mobile,
-      gender: member.gender || profileData.gender,
-      dateOfBirth: member.dateOfBirth || profileData.dateOfBirth,
-      address: member.address || profileData.address,
-      tier: member.tier || profileData.tier,
-      points: member.points || profileData.points,
-      idExterno: member.idExterno || profileData.idExterno
-    };
-    setSelectedMember(enrichedMember);
-  } else {
-    setSelectedMember(member);
-  }
+  console.log("🟢 Miembro seleccionado:", member); // Útil para verificar que los datos están bien
+  setSelectedMember(member);
   setIsDetailsModalOpen(true);
 };
+
 
   const handleCopyLink = (memberId: string) => {
     navigator.clipboard.writeText(`https://pass.example.com/${memberId}`);
