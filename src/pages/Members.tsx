@@ -209,6 +209,53 @@ const handleDeleteSelected = async () => {
   }
 };
 
+const handleExport = async () => {
+  try {
+    const response = await fetch("http://localhost:3900/api/csv/export", {
+      method: "GET",
+    });
+    const blob = await response.blob();
+
+    const link = document.createElement("a");
+    link.href = window.URL.createObjectURL(blob);
+    link.download = "members.csv";
+    link.click();
+  } catch (error) {
+    console.error("❌ Error al exportar CSV:", error);
+  }
+};
+
+ const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append("csvFile", file);
+
+  try {
+    const response = await fetch("http://localhost:3900/api/csv/import", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await response.json();
+    console.log("✅ Importación completa:", result);
+
+    toast({
+      title: "Importación exitosa",
+      description: `${result.message}`,
+    });
+
+    // Opcional: recargar miembros después de importar
+    // await fetchMembers();
+  } catch (error) {
+    console.error("❌ Error al importar CSV:", error);
+    toast({
+      title: "Error",
+      description: "No se pudo importar el archivo",
+    });
+  }
+};
 
 
   return (
@@ -459,15 +506,33 @@ const handleDeleteSelected = async () => {
             </DialogContent>
           </Dialog>
 
-          <Button variant="outline" className="text-muted-foreground">
-            <Upload className="w-4 h-4 mr-2" />
-            IMPORT CSV
-          </Button>
+          {/* IMPORT CSV */}
+<label htmlFor="importCSV">
+  <input
+    id="importCSV"
+    type="file"
+    accept=".csv"
+    onChange={handleImport}
+    style={{ display: "none" }}
+  />
+  <Button variant="outline" className="text-muted-foreground" asChild>
+    <span>
+      <Upload className="w-4 h-4 mr-2" />
+      IMPORT CSV
+    </span>
+  </Button>
+</label>
 
-          <Button variant="outline" className="text-muted-foreground">
-            <Download className="w-4 h-4 mr-2" />
-            EXPORT CSV
-          </Button>
+{/* EXPORT CSV */}
+<Button
+  variant="outline"
+  className="text-muted-foreground"
+  onClick={handleExport}
+>
+  <Download className="w-4 h-4 mr-2" />
+  EXPORT CSV
+</Button>
+
 
           <Button variant="outline" className="text-muted-foreground">
             <Columns3 className="w-4 h-4 mr-2" />
@@ -621,38 +686,35 @@ const handleDeleteSelected = async () => {
                 </TabsContent>
                 
                  <TabsContent value="personal" className="space-y-4 mt-6">
-                   <div className="grid grid-cols-2 gap-4">
-                     <div>
-                       <Label className="text-sm text-muted-foreground">Full Name</Label>
-                       <p className="text-sm">{`${selectedMember.firstName} ${selectedMember.lastName}`.trim() || "—"}</p>
-                     </div>
-                     <div>
-                       <Label className="text-sm text-muted-foreground">Email</Label>
-                       <p className="text-sm">{selectedMember.email || "—"}</p>
-                     </div>
-                     <div>
-                       <Label className="text-sm text-muted-foreground">Phone</Label>
-                       <p className="text-sm">{selectedMember.mobile || "—"}</p>
-                     </div>
-                     <div>
-                       <Label className="text-sm text-muted-foreground">Gender</Label>
-                       <p className="text-sm">{selectedMember.gender || "—"}</p>
-                     </div>
-                     <div>
-                       <Label className="text-sm text-muted-foreground">Date of Birth</Label>
-                       <p className="text-sm">{selectedMember.dateOfBirth || "—"}</p>
-                     </div>
-                     <div>
-                       <Label className="text-sm text-muted-foreground">Address</Label>
-                       <p className="text-sm">{selectedMember.address || "—"}</p>
-                     </div>
-                     <div>
-                       <Label className="text-sm text-muted-foreground">City</Label>
-                       <p className="text-sm">{selectedMember.city || "—"}</p>
-                     </div>
-      
-                   </div>
-                 </TabsContent>
+  <div className="grid grid-cols-2 gap-4">
+    <div>
+      <Label className="text-sm text-muted-foreground">Full Name</Label>
+      <p className="text-sm">{`${selectedMember.nombre ?? ""} ${selectedMember.apellido ?? ""}`.trim() || "—"}</p>
+    </div>
+    <div>
+      <Label className="text-sm text-muted-foreground">Email</Label>
+      <p className="text-sm">{selectedMember.email || "—"}</p>
+    </div>
+    <div>
+      <Label className="text-sm text-muted-foreground">Phone</Label>
+      <p className="text-sm">{selectedMember.telefono || "—"}</p>
+    </div>
+    <div>
+      <Label className="text-sm text-muted-foreground">Gender</Label>
+      <p className="text-sm">{selectedMember.genero || "—"}</p>
+    </div>
+    <div>
+      <Label className="text-sm text-muted-foreground">Date of Birth</Label>
+      <p className="text-sm">{selectedMember.fechaNacimiento || "—"}</p>
+    </div>
+    <div>
+      <Label className="text-sm text-muted-foreground">Puntos</Label>
+      <p className="text-sm">{selectedMember.puntos ?? "—"}</p>
+    </div>
+  </div>
+</TabsContent>
+
+
                 
                 <TabsContent value="meta" className="space-y-4 mt-6">
                   <p className="text-sm text-muted-foreground">No meta fields configured.</p>

@@ -1,3 +1,4 @@
+const { nanoid } = require("nanoid"); // 👈 importar nanoid
 const db = require("../models");
 const Member = db.Member;
 
@@ -7,8 +8,21 @@ exports.getAllMembers = async (req, res) => {
 };
 
 exports.createMember = async (req, res) => {
-  await Member.create(req.body);
-  res.json({ message: "Miembro creado" });
+  try {
+    // Generar external_id único
+    const externalId = nanoid(10); // ejemplo: 'KJ82DKSL90'
+
+    // Crear el miembro con external_id incluido
+    await Member.create({
+      ...req.body,
+      external_id: externalId,
+    });
+
+    res.json({ message: "Miembro creado con external_id" });
+  } catch (error) {
+    console.error("Error al crear el miembro:", error);
+    res.status(500).json({ error: "Error al crear el miembro" });
+  }
 };
 
 exports.updateMember = async (req, res) => {
