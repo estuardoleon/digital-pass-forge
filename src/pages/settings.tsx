@@ -2,12 +2,12 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Home, Shield, Mail, Smartphone, Database, Settings as SettingsIcon, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Home, Shield, Eye, EyeOff } from "lucide-react";
+import AdminSettings from "@/components/AdminSettings";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -19,20 +19,19 @@ const Settings = () => {
   
   // Admin settings
   const [isAdmin, setIsAdmin] = useState(false);
-  const [distributionEmail, setDistributionEmail] = useState("");
-  const [googleAuth, setGoogleAuth] = useState(false);
-  const [appleAuth, setAppleAuth] = useState(false);
-  const [loyaltyStep, setLoyaltyStep] = useState(false);
-  const [androidVersion, setAndroidVersion] = useState("");
 
- const [selectedUserId, setSelectedUserId] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState("");
 
-   useEffect(() => {
-  const userData = JSON.parse(localStorage.getItem("userData") || "{}");
-  if (userData?.id) {
-    setSelectedUserId(userData.id);
-  }
-}, []);
+  useEffect(() => {
+    const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+    if (userData?.id) {
+      setSelectedUserId(userData.id);
+    }
+    
+    // Check if user is admin
+    const userRole = localStorage.getItem('userRole') || 'user';
+    setIsAdmin(userRole === 'admin');
+  }, []);
 
 
   const handleChangePassword = async () => {
@@ -96,22 +95,6 @@ const Settings = () => {
 };
 
 
-  const handleSaveAdminSettings = () => {
-    const adminSettings = {
-      distributionEmail,
-      googleAuth,
-      appleAuth, 
-      loyaltyStep,
-      androidVersion
-    };
-    
-    localStorage.setItem('adminSettings', JSON.stringify(adminSettings));
-    
-    toast({
-      title: "Configuración guardada",
-      description: "La configuración del administrador ha sido guardada"
-    });
-  };
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -119,7 +102,7 @@ const Settings = () => {
         {/* Header with Navigation */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-semibold text-foreground">Configuraciones</h1>
-          <div className="flex gap-3">
+        <div className="flex gap-3">
             <Button 
               variant="outline" 
               onClick={() => navigate(-1)}
@@ -135,6 +118,21 @@ const Settings = () => {
             >
               <Home className="w-4 h-4" />
               Menú Principal
+            </Button>
+            <Button 
+              variant={isAdmin ? "destructive" : "default"}
+              onClick={() => {
+                const newRole = isAdmin ? 'user' : 'admin';
+                localStorage.setItem('userRole', newRole);
+                setIsAdmin(!isAdmin);
+                toast({
+                  title: `Rol cambiado a ${newRole}`,
+                  description: `Ahora eres ${newRole === 'admin' ? 'administrador' : 'usuario'}`
+                });
+              }}
+              className="flex items-center gap-2"
+            >
+              {isAdmin ? 'Desactivar Admin' : 'Activar Admin'}
             </Button>
           </div>
         </div>
@@ -214,135 +212,8 @@ const Settings = () => {
 
           {/* Admin Tab */}
           {isAdmin && (
-            <TabsContent value="admin" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Mail className="w-5 h-5" />
-                    Configuración de Usuario
-                  </CardTitle>
-                  <CardDescription>
-                    Gestiona la creación de usuarios y configuraciones del sistema
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="distributionEmail">Email de Distribución</Label>
-                    <Input
-                      id="distributionEmail"
-                      type="email"
-                      value={distributionEmail}
-                      onChange={(e) => setDistributionEmail(e.target.value)}
-                      placeholder="admin@company.com"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Smartphone className="w-5 h-5" />
-                    Configuración de Acceso
-                  </CardTitle>
-                  <CardDescription>
-                    Configura los métodos de autenticación disponibles
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Acceso con Google</Label>
-                      <p className="text-sm text-muted-foreground">Permitir inicio de sesión con Google</p>
-                    </div>
-                    <Switch
-                      checked={googleAuth}
-                      onCheckedChange={setGoogleAuth}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Acceso con Apple</Label>
-                      <p className="text-sm text-muted-foreground">Permitir inicio de sesión con Apple</p>
-                    </div>
-                    <Switch
-                      checked={appleAuth}
-                      onCheckedChange={setAppleAuth}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Paso de Lealtad</Label>
-                      <p className="text-sm text-muted-foreground">Activar programa de lealtad</p>
-                    </div>
-                    <Switch
-                      checked={loyaltyStep}
-                      onCheckedChange={setLoyaltyStep}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <SettingsIcon className="w-5 h-5" />
-                    Configuración Android
-                  </CardTitle>
-                  <CardDescription>
-                    Configuraciones específicas para la aplicación Android
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="androidVersion">Versión Android Mínima</Label>
-                    <Input
-                      id="androidVersion"
-                      value={androidVersion}
-                      onChange={(e) => setAndroidVersion(e.target.value)}
-                      placeholder="8.0"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Database className="w-5 h-5" />
-                    Acceso Backend
-                  </CardTitle>
-                  <CardDescription>
-                    Configuraciones avanzadas del sistema y base de datos
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="bg-muted/50 p-4 rounded-lg">
-                    <p className="text-sm font-medium">Estado: Conectado a Supabase</p>
-                    <p className="text-xs text-muted-foreground">
-                      Para configurar completamente el backend con CRUD, autenticación y gestión de usuarios,
-                      se requiere activar la integración con Supabase.
-                    </p>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="mt-2"
-                      onClick={() => window.open('https://docs.lovable.dev/integrations/supabase/', '_blank')}
-                    >
-                      Ver Documentación
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Button 
-                onClick={handleSaveAdminSettings}
-                className="bg-[#7069e3] hover:bg-[#5f58d1] text-white w-full"
-              >
-                Guardar Configuración del Administrador
-              </Button>
+            <TabsContent value="admin">
+              <AdminSettings />
             </TabsContent>
           )}
         </Tabs>

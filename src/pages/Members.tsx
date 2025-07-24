@@ -74,19 +74,18 @@ const Members = () => {
     return;
   }
 
-  // Crear objeto de miembro
+  // Crear objeto de miembro (sin externalId, lo genera el backend)
   const member = {
-    id: generatePasskitId(),
-    externalId: null, // Será generado por el backend
     firstName,
     lastName,
     email,
     mobile,
     tier,
-    gender: newMember.gender,
+    gender: newMember.gender || "Other",
     points: parseInt(newMember.points) || 0,
     dateCreated: new Date().toISOString().split("T")[0],
     expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    dateOfBirth: ""
   };
 
   try {
@@ -98,9 +97,11 @@ const Members = () => {
 
     if (!res.ok) throw new Error("Error al guardar");
 
+    const result = await res.json();
+    
     toast({
       title: "Miembro agregado",
-      description: "El nuevo miembro fue guardado exitosamente.",
+      description: `Miembro creado con External ID: ${result.externalId}`,
     });
 
     setIsAddModalOpen(false);
@@ -410,10 +411,14 @@ const handleExport = async () => {
                   <Label htmlFor="externalId">External ID</Label>
                   <Input
                     id="externalId"
-                    value={newMember.externalId}
-                    onChange={(e) => setNewMember({...newMember, externalId: e.target.value})}
-                    placeholder="Enter external ID"
+                    value="Se generará automáticamente"
+                    disabled
+                    placeholder="Se generará automáticamente"
+                    className="bg-muted text-muted-foreground"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    El External ID se genera automáticamente al crear el miembro
+                  </p>
                 </div>
 
                 <div>
@@ -569,8 +574,8 @@ const handleExport = async () => {
       />
     </TableCell>
     <TableCell className="font-mono text-sm">{member.id}</TableCell>
-    <TableCell className="text-sm">{member.idExterno}</TableCell>
-    <TableCell className="text-sm">{member.nombre}</TableCell>
+    <TableCell className="text-sm">{member.externalId || member.idExterno || "—"}</TableCell>
+    <TableCell className="text-sm">{member.firstName || member.nombre || "—"}</TableCell>
     <TableCell className="text-right">
       <div className="flex justify-end gap-2">
         <Button
@@ -592,7 +597,7 @@ const handleExport = async () => {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => handleCopyLink(member.idExterno)}
+          onClick={() => handleCopyLink(member.externalId || member.idExterno)}
           className="h-8 w-8 p-0 hover:bg-muted"
         >
           <Link className="w-4 h-4 text-muted-foreground" />
@@ -664,23 +669,23 @@ const handleExport = async () => {
                     </div>
                     <div>
                       <Label className="text-sm text-muted-foreground">Tier</Label>
-                      <p className="text-sm">{selectedMember.tier}</p>
+                      <p className="text-sm">{selectedMember.tier || selectedMember.tipoCliente || "—"}</p>
                     </div>
                     <div>
                       <Label className="text-sm text-muted-foreground">External ID</Label>
-                      <p className="text-sm">{selectedMember.externalId || "—"}</p>
+                      <p className="text-sm">{selectedMember.externalId || selectedMember.idExterno || "—"}</p>
                     </div>
                     <div>
                       <Label className="text-sm text-muted-foreground">Points</Label>
-                      <p className="text-sm">{selectedMember.points}</p>
+                      <p className="text-sm">{selectedMember.points || selectedMember.puntos || 0}</p>
                     </div>
                     <div>
                       <Label className="text-sm text-muted-foreground">Date Created</Label>
-                      <p className="text-sm">{selectedMember.dateCreated}</p>
+                      <p className="text-sm">{selectedMember.dateCreated || selectedMember.createdAt || "—"}</p>
                     </div>
                     <div>
                       <Label className="text-sm text-muted-foreground">Expiry Date</Label>
-                      <p className="text-sm">{selectedMember.expiryDate}</p>
+                      <p className="text-sm">{selectedMember.expiryDate || "—"}</p>
                     </div>
                   </div>
                 </TabsContent>
@@ -689,7 +694,12 @@ const handleExport = async () => {
   <div className="grid grid-cols-2 gap-4">
     <div>
       <Label className="text-sm text-muted-foreground">Full Name</Label>
-      <p className="text-sm">{`${selectedMember.nombre ?? ""} ${selectedMember.apellido ?? ""}`.trim() || "—"}</p>
+      <p className="text-sm">
+        {selectedMember.firstName && selectedMember.lastName 
+          ? `${selectedMember.firstName} ${selectedMember.lastName}`
+          : `${selectedMember.nombre || ""} ${selectedMember.apellido || ""}`.trim() || "—"
+        }
+      </p>
     </div>
     <div>
       <Label className="text-sm text-muted-foreground">Email</Label>
@@ -697,19 +707,19 @@ const handleExport = async () => {
     </div>
     <div>
       <Label className="text-sm text-muted-foreground">Phone</Label>
-      <p className="text-sm">{selectedMember.telefono || "—"}</p>
+      <p className="text-sm">{selectedMember.mobile || selectedMember.telefono || "—"}</p>
     </div>
     <div>
       <Label className="text-sm text-muted-foreground">Gender</Label>
-      <p className="text-sm">{selectedMember.genero || "—"}</p>
+      <p className="text-sm">{selectedMember.gender || selectedMember.genero || "—"}</p>
     </div>
     <div>
       <Label className="text-sm text-muted-foreground">Date of Birth</Label>
-      <p className="text-sm">{selectedMember.fechaNacimiento || "—"}</p>
+      <p className="text-sm">{selectedMember.dateOfBirth || selectedMember.fechaNacimiento || "—"}</p>
     </div>
     <div>
-      <Label className="text-sm text-muted-foreground">Puntos</Label>
-      <p className="text-sm">{selectedMember.puntos ?? "—"}</p>
+      <Label className="text-sm text-muted-foreground">Points</Label>
+      <p className="text-sm">{selectedMember.points || selectedMember.puntos || 0}</p>
     </div>
   </div>
 </TabsContent>
