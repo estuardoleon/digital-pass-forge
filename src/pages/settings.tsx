@@ -25,43 +25,76 @@ const Settings = () => {
   const [loyaltyStep, setLoyaltyStep] = useState(false);
   const [androidVersion, setAndroidVersion] = useState("");
 
-  useEffect(() => {
-    // Check if user is admin (you can modify this logic)
-    const userRole = localStorage.getItem('userRole') || 'user';
-    setIsAdmin(userRole === 'admin');
-  }, []);
+ const [selectedUserId, setSelectedUserId] = useState("");
 
-  const handleChangePassword = () => {
-    if (newPassword !== confirmPassword) {
+   useEffect(() => {
+  const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+  if (userData?.id) {
+    setSelectedUserId(userData.id);
+  }
+}, []);
+
+
+  const handleChangePassword = async () => {
+  if (newPassword !== confirmPassword) {
+    toast({
+      title: "Error",
+      description: "Las contraseñas no coinciden",
+      variant: "destructive"
+    });
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    toast({
+      title: "Error",
+      description: "La contraseña debe tener al menos 6 caracteres",
+      variant: "destructive"
+    });
+    return;
+  }
+
+  try {
+    const response = await fetch("http://localhost:3900/api/auth/change-password", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userId: selectedUserId, // Asegúrate de tener esto bien definido
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      toast({
+        title: "Éxito",
+        description: "Contraseña actualizada correctamente",
+      });
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } else {
       toast({
         title: "Error",
-        description: "Las contraseñas no coinciden",
+        description: data.error || "No se pudo cambiar la contraseña",
         variant: "destructive"
       });
-      return;
     }
-
-    if (newPassword.length < 6) {
-      toast({
-        title: "Error", 
-        description: "La contraseña debe tener al menos 6 caracteres",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Here you would normally validate current password with backend
-    localStorage.setItem('userPassword', newPassword);
-    
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    
+  } catch (error) {
     toast({
-      title: "Contraseña actualizada",
-      description: "Tu contraseña ha sido cambiada exitosamente"
+      title: "Error",
+      description: "Ocurrió un problema al conectar con el servidor",
+      variant: "destructive"
     });
-  };
+    console.error(error);
+  }
+};
+
 
   const handleSaveAdminSettings = () => {
     const adminSettings = {
