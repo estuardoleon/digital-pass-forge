@@ -3,26 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { useProfileStore } from "@/store/profileStore";
 
 const Profile = () => {
   const navigate = useNavigate();
-
-  const [formData, setFormData] = useState({
-    nombre: "",
-    apellido: "",
-    fechaNacimiento: "",
-    codigoCliente: "",
-    codigoCampaña: "",
-    tipoCliente: "",
-    email: "",
-    telefono: "",
-    genero: "",
-    puntos: "",
-    idExterno: ""
-  });
+  const { profileData, setProfileData, clearProfileData } = useProfileStore();
+  
+  const [formData, setFormData] = useState(profileData);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const newData = { ...formData, [e.target.name]: e.target.value };
+    setFormData(newData);
+    setProfileData(newData);
   };
 
   const handleGuardar = async () => {
@@ -43,6 +35,7 @@ const Profile = () => {
       alert("Cliente guardado en MySQL con éxito");
 
       // limpiar formulario
+      clearProfileData();
       setFormData({
         nombre: "",
         apellido: "",

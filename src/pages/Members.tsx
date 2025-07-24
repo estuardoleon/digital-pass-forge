@@ -11,12 +11,14 @@ import { User, Edit3, Link, Plus, Upload, Download, Columns3 } from "lucide-reac
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2 } from "lucide-react";
+import { useProfileStore } from "@/store/profileStore";
+import { ColumnFilter } from "@/components/ColumnFilter";
 
 
 const Members = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-
+  const { profileData, clearProfileData } = useProfileStore();
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -25,10 +27,11 @@ const Members = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editMember, setEditMember] = useState<any>(null);
   const [membersFromBackend, setMembersFromBackend] = useState([]);
-
+  const [visibleColumns, setVisibleColumns] = useState([
+    "checkbox", "passkitId", "externalId", "firstName", "actions"
+  ]);
 
   const [newMember, setNewMember] = useState({
-    
     tier: "",
     externalId: "",
     points: "",
@@ -50,6 +53,24 @@ const Members = () => {
       console.error("❌ Error al cargar miembros:", error);
     });
 }, []);
+
+// Cargar datos del profile si existen
+useEffect(() => {
+  if (profileData.email || profileData.nombre) {
+    setNewMember({
+      tier: profileData.tipoCliente || "",
+      externalId: "",
+      points: profileData.puntos || "",
+      firstName: profileData.nombre || "",
+      lastName: profileData.apellido || "",
+      email: profileData.email || "",
+      mobile: profileData.telefono || "",
+      gender: profileData.genero === "Masculino" ? "Male" : 
+              profileData.genero === "Femenino" ? "Female" : "Other"
+    });
+    setIsAddModalOpen(true);
+  }
+}, [profileData]);
 
 
   const generatePasskitId = () => {
@@ -117,6 +138,9 @@ const Members = () => {
       gender: ""
     });
 
+    // Limpiar datos del profile después de agregar
+    clearProfileData();
+
     // Refrescar miembros
     const updated = await fetch("http://localhost:3900/api/members");
     const updatedData = await updated.json();
@@ -177,8 +201,27 @@ const handleViewDetails = (member: any) => {
   };
 
     const handleEditMember = (member: any) => {
-  setEditMember(member);
+  // Mapear los datos correctamente para el formulario de edición
+  const memberToEdit = {
+    ...member,
+    firstName: member.firstName || member.nombre || "",
+    lastName: member.lastName || member.apellido || "",
+    mobile: member.mobile || member.telefono || "",
+    gender: member.gender || 
+           (member.genero === "Masculino" ? "Male" : 
+            member.genero === "Femenino" ? "Female" : "Other"),
+    points: member.points || member.puntos || 0
+  };
+  setEditMember(memberToEdit);
   setIsEditModalOpen(true);
+};
+
+const handleColumnToggle = (columnKey: string) => {
+  setVisibleColumns(prev => 
+    prev.includes(columnKey) 
+      ? prev.filter(key => key !== columnKey)
+      : [...prev, columnKey]
+  );
 };
 
 const handleDeleteSelected = async () => {
@@ -281,34 +324,34 @@ const handleExport = async () => {
           <div>
             <Label>First Name</Label>
             <Input
-              value={editMember.firstName}
+              value={editMember.firstName || ""}
               onChange={e => setEditMember({ ...editMember, firstName: e.target.value })}
             />
           </div>
           <div>
             <Label>Last Name</Label>
             <Input
-              value={editMember.lastName}
+              value={editMember.lastName || ""}
               onChange={e => setEditMember({ ...editMember, lastName: e.target.value })}
             />
           </div>
           <div>
             <Label>Email</Label>
             <Input
-              value={editMember.email}
+              value={editMember.email || ""}
               onChange={e => setEditMember({ ...editMember, email: e.target.value })}
             />
           </div>
           <div>
             <Label>Mobile</Label>
             <Input
-              value={editMember.mobile}
+              value={editMember.mobile || ""}
               onChange={e => setEditMember({ ...editMember, mobile: e.target.value })}
             />
           </div>
           <div>
             <Label>Gender</Label>
-            <Select value={editMember.gender} onValueChange={value => setEditMember({ ...editMember, gender: value })}>
+            <Select value={editMember.gender || ""} onValueChange={value => setEditMember({ ...editMember, gender: value })}>
               <SelectTrigger>
                 <SelectValue placeholder="Select gender" />
               </SelectTrigger>
@@ -323,7 +366,7 @@ const handleExport = async () => {
             <Label>Points</Label>
             <Input
               type="number"
-              value={editMember.points}
+              value={editMember.points || ""}
               onChange={e => setEditMember({ ...editMember, points: e.target.value })}
             />
           </div>
@@ -539,10 +582,10 @@ const handleExport = async () => {
 </Button>
 
 
-          <Button variant="outline" className="text-muted-foreground">
-            <Columns3 className="w-4 h-4 mr-2" />
-            COLUMNS
-          </Button>
+          <ColumnFilter 
+            visibleColumns={visibleColumns} 
+            onColumnToggle={handleColumnToggle} 
+          />
         </div>
 
 
@@ -551,59 +594,120 @@ const handleExport = async () => {
           <Table>
             <TableHeader>
               <TableRow className="border-b bg-muted/50">
-                <TableHead className="w-12">
-                  <Checkbox
-                    checked={selectedMembers.length === membersFromBackend.length
-}
-                    onCheckedChange={handleSelectAll}
-                  />
-                </TableHead>
-                <TableHead className="font-medium text-muted-foreground">PASSKIT ID</TableHead>
-                <TableHead className="font-medium text-muted-foreground">EXTERNAL ID</TableHead>
-                <TableHead className="font-medium text-muted-foreground">FIRST NAME</TableHead>
-                <TableHead className="font-medium text-muted-foreground text-right">ACTIONS</TableHead>
+                {visibleColumns.includes("checkbox") && (
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectedMembers.length === membersFromBackend.length && membersFromBackend.length > 0}
+                      onCheckedChange={handleSelectAll}
+                    />
+                  </TableHead>
+                )}
+                {visibleColumns.includes("passkitId") && (
+                  <TableHead className="font-medium text-muted-foreground">PASSKIT ID</TableHead>
+                )}
+                {visibleColumns.includes("externalId") && (
+                  <TableHead className="font-medium text-muted-foreground">EXTERNAL ID</TableHead>
+                )}
+                {visibleColumns.includes("firstName") && (
+                  <TableHead className="font-medium text-muted-foreground">FIRST NAME</TableHead>
+                )}
+                {visibleColumns.includes("lastName") && (
+                  <TableHead className="font-medium text-muted-foreground">LAST NAME</TableHead>
+                )}
+                {visibleColumns.includes("email") && (
+                  <TableHead className="font-medium text-muted-foreground">EMAIL</TableHead>
+                )}
+                {visibleColumns.includes("mobile") && (
+                  <TableHead className="font-medium text-muted-foreground">MOBILE</TableHead>
+                )}
+                {visibleColumns.includes("tier") && (
+                  <TableHead className="font-medium text-muted-foreground">TIER</TableHead>
+                )}
+                {visibleColumns.includes("points") && (
+                  <TableHead className="font-medium text-muted-foreground">POINTS</TableHead>
+                )}
+                {visibleColumns.includes("gender") && (
+                  <TableHead className="font-medium text-muted-foreground">GENDER</TableHead>
+                )}
+                {visibleColumns.includes("dateCreated") && (
+                  <TableHead className="font-medium text-muted-foreground">DATE CREATED</TableHead>
+                )}
+                {visibleColumns.includes("actions") && (
+                  <TableHead className="font-medium text-muted-foreground text-right">ACTIONS</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
              {membersFromBackend.map((member: any) => (
   <TableRow key={member.id} className="hover:bg-muted/50">
-    <TableCell>
-      <Checkbox
-        checked={selectedMembers.includes(member.id)}
-        onCheckedChange={() => handleSelectMember(member.id)}
-      />
-    </TableCell>
-    <TableCell className="font-mono text-sm">{member.id}</TableCell>
-    <TableCell className="text-sm">{member.externalId || member.idExterno || "—"}</TableCell>
-    <TableCell className="text-sm">{member.firstName || member.nombre || "—"}</TableCell>
-    <TableCell className="text-right">
-      <div className="flex justify-end gap-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => handleViewDetails(member)}
-          className="h-8 w-8 p-0 hover:bg-muted"
-        >
-          <User className="w-4 h-4 text-muted-foreground" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => handleEditMember(member)}
-          className="h-8 w-8 p-0 hover:bg-muted"
-        >
-          <Edit3 className="w-4 h-4 text-muted-foreground" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => handleCopyLink(member.externalId || member.idExterno)}
-          className="h-8 w-8 p-0 hover:bg-muted"
-        >
-          <Link className="w-4 h-4 text-muted-foreground" />
-        </Button>
-      </div>
-    </TableCell>
+    {visibleColumns.includes("checkbox") && (
+      <TableCell>
+        <Checkbox
+          checked={selectedMembers.includes(member.id)}
+          onCheckedChange={() => handleSelectMember(member.id)}
+        />
+      </TableCell>
+    )}
+    {visibleColumns.includes("passkitId") && (
+      <TableCell className="font-mono text-sm">{member.id}</TableCell>
+    )}
+    {visibleColumns.includes("externalId") && (
+      <TableCell className="text-sm">{member.externalId || member.idExterno || "—"}</TableCell>
+    )}
+    {visibleColumns.includes("firstName") && (
+      <TableCell className="text-sm">{member.firstName || member.nombre || "—"}</TableCell>
+    )}
+    {visibleColumns.includes("lastName") && (
+      <TableCell className="text-sm">{member.lastName || member.apellido || "—"}</TableCell>
+    )}
+    {visibleColumns.includes("email") && (
+      <TableCell className="text-sm">{member.email || "—"}</TableCell>
+    )}
+    {visibleColumns.includes("mobile") && (
+      <TableCell className="text-sm">{member.mobile || member.telefono || "—"}</TableCell>
+    )}
+    {visibleColumns.includes("tier") && (
+      <TableCell className="text-sm">{member.tier || member.tipoCliente || "—"}</TableCell>
+    )}
+    {visibleColumns.includes("points") && (
+      <TableCell className="text-sm">{member.points || member.puntos || 0}</TableCell>
+    )}
+    {visibleColumns.includes("gender") && (
+      <TableCell className="text-sm">{member.gender || member.genero || "—"}</TableCell>
+    )}
+    {visibleColumns.includes("dateCreated") && (
+      <TableCell className="text-sm">{member.dateCreated || member.createdAt?.split('T')[0] || "—"}</TableCell>
+    )}
+    {visibleColumns.includes("actions") && (
+      <TableCell className="text-right">
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleViewDetails(member)}
+            className="h-8 w-8 p-0 hover:bg-muted"
+          >
+            <User className="w-4 h-4 text-muted-foreground" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleEditMember(member)}
+            className="h-8 w-8 p-0 hover:bg-muted"
+          >
+            <Edit3 className="w-4 h-4 text-muted-foreground" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleCopyLink(member.externalId || member.idExterno)}
+            className="h-8 w-8 p-0 hover:bg-muted"
+          >
+            <Link className="w-4 h-4 text-muted-foreground" />
+          </Button>
+        </div>
+      </TableCell>
+    )}
   </TableRow>
 ))}
 
