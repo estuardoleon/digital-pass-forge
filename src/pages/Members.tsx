@@ -39,17 +39,27 @@ const Members = () => {
     gender: ""
   });
 
- useEffect(() => {
+useEffect(() => {
   fetch("http://localhost:3900/api/members")
     .then((res) => res.json())
     .then((data) => {
       console.log("🟢 Miembros desde backend:", data);
-      setMembersFromBackend(data);
+
+      console.log("📎 typeof data:", typeof data);
+      console.log("📎 Es array?", Array.isArray(data));
+
+      if (Array.isArray(data)) {
+        setMembersFromBackend(data); // ✅ correcto
+      } else {
+        console.error("❌ La respuesta no es un array:", data);
+        setMembersFromBackend([]);   // ✅ evita que falle el .map()
+      }
     })
     .catch((error) => {
       console.error("❌ Error al cargar miembros:", error);
     });
 }, []);
+
 
 
   const generatePasskitId = () => {
@@ -568,8 +578,9 @@ const handleExport = async () => {
       />
     </TableCell>
     <TableCell className="font-mono text-sm">{member.id}</TableCell>
-    <TableCell className="text-sm">{member.idExterno}</TableCell>
-    <TableCell className="text-sm">{member.nombre}</TableCell>
+    <TableCell className="text-sm">{member.external_id}</TableCell>
+    <TableCell className="text-sm">{member.firstName}</TableCell>
+
     <TableCell className="text-right">
       <div className="flex justify-end gap-2">
         <Button
@@ -684,35 +695,35 @@ const handleExport = async () => {
                   </div>
                 </TabsContent>
                 
-                 <TabsContent value="personal" className="space-y-4 mt-6">
+    <TabsContent value="personal" className="space-y-4 mt-6">
   <div className="grid grid-cols-2 gap-4">
     <div>
       <Label className="text-sm text-muted-foreground">Full Name</Label>
-      <p className="text-sm">{`${selectedMember.nombre ?? ""} ${selectedMember.apellido ?? ""}`.trim() || "—"}</p>
+      <p className="text-sm">{`${selectedMember.firstName ?? ""} ${selectedMember.lastName ?? ""}`.trim() || "—"}</p>
     </div>
-    
     <div>
       <Label className="text-sm text-muted-foreground">Email</Label>
       <p className="text-sm">{selectedMember.email || "—"}</p>
     </div>
     <div>
       <Label className="text-sm text-muted-foreground">Phone</Label>
-      <p className="text-sm">{selectedMember.telefono || "—"}</p>
+      <p className="text-sm">{selectedMember.mobile || "—"}</p>
     </div>
     <div>
       <Label className="text-sm text-muted-foreground">Gender</Label>
-      <p className="text-sm">{selectedMember.genero || "—"}</p>
+      <p className="text-sm">{selectedMember.gender || "—"}</p>
     </div>
     <div>
       <Label className="text-sm text-muted-foreground">Date of Birth</Label>
-      <p className="text-sm">{selectedMember.fechaNacimiento || "—"}</p>
+      <p className="text-sm">{selectedMember.dateOfBirth || "—"}</p>
     </div>
     <div>
-      <Label className="text-sm text-muted-foreground">Puntos</Label>
-      <p className="text-sm">{selectedMember.puntos ?? "—"}</p>
+      <Label className="text-sm text-muted-foreground">Points</Label>
+      <p className="text-sm">{selectedMember.points ?? "—"}</p>
     </div>
   </div>
 </TabsContent>
+
 
 
                 
