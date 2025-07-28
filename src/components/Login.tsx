@@ -8,6 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { LogIn, Shield, User } from 'lucide-react';
+import { useAuth } from "@/context/AuthContext";
+import { nanoid } from 'nanoid';
+
+
 
 interface LoginCredentials {
   email: string;
@@ -18,6 +22,7 @@ interface LoginCredentials {
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { setUser } = useAuth();
   const [credentials, setCredentials] = useState<LoginCredentials>({
     email: '',
     password: '',
@@ -59,18 +64,24 @@ const Login = () => {
     if (isValidUser) {
       // Store session in localStorage (prepare for future backend integration)
       const sessionData = {
-        email: credentials.email,
-        role: credentials.role,
-        loginTime: new Date().toISOString()
-      };
-      localStorage.setItem('passkit_session', JSON.stringify(sessionData));
+  id: nanoid(12), // ✅ ID generado automáticamente
+  email: credentials.email,
+  role: credentials.role,
+  loginTime: new Date().toISOString()
+};
 
-      toast({
+setUser(sessionData);
+localStorage.setItem("passkit_session", JSON.stringify(sessionData));
+
+  toast({
         title: "Login successful",
         description: `Welcome ${credentials.role === 'admin' ? 'Administrator' : 'User'}!`,
       });
 
-      navigate('/dashboard');
+   
+        navigate('/dashboard'); // ahora tanto admin como user van al dashboard
+
+
     } else {
       setError('Access denied. Only authorized personnel can access this system.');
     }

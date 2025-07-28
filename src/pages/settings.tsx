@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,111 +6,88 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Home, Shield, Eye, EyeOff } from "lucide-react";
+import { Home, Shield, Eye, EyeOff } from "lucide-react";
 import AdminSettings from "@/components/AdminSettings";
+import { useAuth } from "@/context/AuthContext";
 
 const Settings = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPasswords, setShowPasswords] = useState(false);
-  
-  // Admin settings
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  const [selectedUserId, setSelectedUserId] = useState("");
-
-  useEffect(() => {
-    const userData = JSON.parse(localStorage.getItem("userData") || "{}");
-    if (userData?.id) {
-      setSelectedUserId(userData.id);
-    }
-    
-    // Check if user is admin
-    const userRole = localStorage.getItem('userRole') || 'user';
-    setIsAdmin(userRole === 'admin');
-  }, []);
-
 
   const handleChangePassword = async () => {
-  if (newPassword !== confirmPassword) {
-    toast({
-      title: "Error",
-      description: "Las contraseñas no coinciden",
-      variant: "destructive"
-    });
-    return;
-  }
-
-  if (newPassword.length < 6) {
-    toast({
-      title: "Error",
-      description: "La contraseña debe tener al menos 6 caracteres",
-      variant: "destructive"
-    });
-    return;
-  }
-
-  try {
-    const response = await fetch("http://localhost:3900/api/auth/change-password", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        userId: selectedUserId, // Asegúrate de tener esto bien definido
-        currentPassword: currentPassword,
-        newPassword: newPassword,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      toast({
-        title: "Éxito",
-        description: "Contraseña actualizada correctamente",
-      });
-
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-    } else {
+    if (newPassword !== confirmPassword) {
       toast({
         title: "Error",
-        description: data.error || "No se pudo cambiar la contraseña",
+        description: "Las contraseñas no coinciden",
         variant: "destructive"
       });
+      return;
     }
-  } catch (error) {
-    toast({
-      title: "Error",
-      description: "Ocurrió un problema al conectar con el servidor",
-      variant: "destructive"
-    });
-    console.error(error);
-  }
-};
 
+    if (newPassword.length < 6) {
+      toast({
+        title: "Error",
+        description: "La contraseña debe tener al menos 6 caracteres",
+        variant: "destructive"
+      });
+      return;
+    }
 
+    try {
+      const response = await fetch("http://localhost:3900/api/auth/change-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: user?.id,
+          currentPassword,
+          newPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Éxito",
+          description: "Contraseña actualizada correctamente",
+        });
+
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "No se pudo cambiar la contraseña",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Ocurrió un problema al conectar con el servidor",
+        variant: "destructive"
+      });
+      console.error(error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto">
-        {/* Header with Navigation */}
+        {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-semibold text-foreground">Configuraciones</h1>
-        <div className="flex gap-3">
-            <Button 
-              variant="outline" 
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Regresar
-            </Button>
+          <div className="flex gap-3">
             <Button 
               variant="outline"
               onClick={() => navigate("/dashboard")}
@@ -119,31 +96,17 @@ const Settings = () => {
               <Home className="w-4 h-4" />
               Menú Principal
             </Button>
-            <Button 
-              variant={isAdmin ? "destructive" : "default"}
-              onClick={() => {
-                const newRole = isAdmin ? 'user' : 'admin';
-                localStorage.setItem('userRole', newRole);
-                setIsAdmin(!isAdmin);
-                toast({
-                  title: `Rol cambiado a ${newRole}`,
-                  description: `Ahora eres ${newRole === 'admin' ? 'administrador' : 'usuario'}`
-                });
-              }}
-              className="flex items-center gap-2"
-            >
-              {isAdmin ? 'Desactivar Admin' : 'Activar Admin'}
-            </Button>
+
+
           </div>
         </div>
 
         <Tabs defaultValue="account" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className={`grid w-full ${isAdmin ? "grid-cols-2" : "grid-cols-1"}`}>
             <TabsTrigger value="account">Mi Cuenta</TabsTrigger>
             {isAdmin && <TabsTrigger value="admin">Configuración Admin</TabsTrigger>}
           </TabsList>
 
-          {/* Account Tab */}
           <TabsContent value="account" className="space-y-6">
             <Card>
               <CardHeader>
@@ -210,7 +173,6 @@ const Settings = () => {
             </Card>
           </TabsContent>
 
-          {/* Admin Tab */}
           {isAdmin && (
             <TabsContent value="admin">
               <AdminSettings />

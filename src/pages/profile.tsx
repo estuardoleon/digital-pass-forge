@@ -135,7 +135,7 @@ const Profile = () => {
         </div>
 
         <div className="flex justify-between pt-4">
-          <Button variant="outline" onClick={() => navigate("/settings")}>Regresar</Button>
+          <Button variant="outline" onClick={() => navigate("/dashboard")}>Regresar</Button>
           <div className="flex gap-4">
             <Button onClick={handleGuardar}>Guardar</Button>
             <Button onClick={handleAdvance}>Avanzar</Button>
