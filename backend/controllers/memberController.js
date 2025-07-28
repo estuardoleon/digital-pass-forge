@@ -3,33 +3,38 @@ const db = require("../models");
 const Member = db.Member;
 
 exports.getAllMembers = async (req, res) => {
-  const members = await Member.findAll();
-  res.json(members);
+  try {
+    const members = await Member.findAll();
+    res.json(members);
+  } catch (error) {
+    console.error("Error al obtener miembros:", error);
+    res.status(500).json({ error: "Error al obtener miembros" });
+  }
 };
 
 exports.createMember = async (req, res) => {
   try {
-    // Generate unique external ID
+    // Generar ID único
     const externalId = nanoid(10);
 
-    // Map frontend fields to backend and include auto-generated externalId
+    // Crear objeto con campos modernos + campos legacy renombrados
     const memberData = {
       ...req.body,
-      externalId: externalId,
-      
-      // Map legacy fields for compatibility
-      nombre: req.body.firstName,
-      apellido: req.body.lastName,
-      telefono: req.body.mobile,
-      tipoCliente: req.body.tier,
-      puntos: req.body.points,
-      genero: req.body.gender,
-      fechaNacimiento: req.body.dateOfBirth,
-      idExterno: externalId
+      external_id: externalId,
+
+      // Campos legacy (renombrados)
+      nombre_legacy: req.body.firstName,
+      apellido_legacy: req.body.lastName,
+      telefono_legacy: req.body.mobile,
+      tipoCliente_legacy: req.body.tier,
+      puntos_legacy: req.body.points,
+      genero_legacy: req.body.gender,
+      fechaNacimiento_legacy: req.body.dateOfBirth,
+      idExterno_legacy: externalId
     };
 
     const newMember = await Member.create(memberData);
-    
+
     res.json({ 
       message: "Miembro creado exitosamente", 
       member: newMember,
@@ -42,11 +47,21 @@ exports.createMember = async (req, res) => {
 };
 
 exports.updateMember = async (req, res) => {
-  await Member.update(req.body, { where: { id: req.params.id } });
-  res.json({ message: "Miembro actualizado" });
+  try {
+    await Member.update(req.body, { where: { id: req.params.id } });
+    res.json({ message: "Miembro actualizado" });
+  } catch (error) {
+    console.error("Error al actualizar el miembro:", error);
+    res.status(500).json({ error: "Error al actualizar el miembro" });
+  }
 };
 
 exports.deleteMember = async (req, res) => {
-  await Member.destroy({ where: { id: req.params.id } });
-  res.json({ message: "Miembro eliminado" });
+  try {
+    await Member.destroy({ where: { id: req.params.id } });
+    res.json({ message: "Miembro eliminado" });
+  } catch (error) {
+    console.error("Error al eliminar el miembro:", error);
+    res.status(500).json({ error: "Error al eliminar el miembro" });
+  }
 };

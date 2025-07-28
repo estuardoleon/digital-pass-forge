@@ -1,6 +1,10 @@
 module.exports = (sequelize, DataTypes) => {
   return sequelize.define("Member", {
-    // Frontend mapping fields
+    external_id: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+    },
     firstName: DataTypes.STRING,
     lastName: DataTypes.STRING,
     email: DataTypes.STRING,
@@ -11,24 +15,20 @@ module.exports = (sequelize, DataTypes) => {
     dateCreated: DataTypes.STRING,
     expiryDate: DataTypes.STRING,
     dateOfBirth: DataTypes.STRING,
-    
-    // Auto-generated external ID as primary key
-    externalId: {
-      type: DataTypes.STRING,
-      unique: true,
-      allowNull: false
-    },
-    
-    // Legacy fields (keep for compatibility)
-    nombre: DataTypes.STRING,
-    apellido: DataTypes.STRING,
-    fechaNacimiento: DataTypes.STRING,
+
+    // Campos legacy sin duplicar nombres
+    nombre_legacy: DataTypes.STRING,
+    apellido_legacy: DataTypes.STRING,
+    telefono_legacy: DataTypes.STRING,
+    tipoCliente_legacy: DataTypes.STRING,
+    genero_legacy: DataTypes.STRING,
+    puntos_legacy: DataTypes.INTEGER,
+    fechaNacimiento_legacy: DataTypes.STRING,
+    idExterno_legacy: DataTypes.STRING,
     codigoCliente: DataTypes.STRING,
     codigoCampaña: DataTypes.STRING,
-    tipoCliente: DataTypes.STRING,
-    telefono: DataTypes.STRING,
-    genero: DataTypes.STRING,
-    puntos: DataTypes.INTEGER,
-    idExterno: DataTypes.STRING,
+  }, {
+    tableName: 'members',
+    timestamps: false,
   });
 };

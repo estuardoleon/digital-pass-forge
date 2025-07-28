@@ -110,20 +110,21 @@ const Profile = () => {
             <Label>Teléfono</Label>
             <Input name="telefono" value={formData.telefono} onChange={handleChange} />
           </div>
-          <div>
-            <Label>Género</Label>
-            <select
-              name="genero"
-              value={formData.genero}
-              onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2"
-            >
-              <option value="">Selecciona</option>
-              <option value="Masculino">Masculino</option>
-              <option value="Femenino">Femenino</option>
-              <option value="Otro">Otro</option>
-            </select>
-          </div>
+         <div className="w-full">
+  <Label className="mb-1 block">Género</Label>
+  <select
+    name="genero"
+    value={formData.genero}
+    onChange={handleChange}
+    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+  >
+    <option value="">Selecciona</option>
+    <option value="Masculino">Masculino</option>
+    <option value="Femenino">Femenino</option>
+    <option value="Otro">Otro</option>
+  </select>
+</div>
+
           <div>
             <Label>Puntos</Label>
             <Input name="puntos" value={formData.puntos} onChange={handleChange} />
