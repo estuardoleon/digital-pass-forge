@@ -1,205 +1,225 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useToast } from '@/hooks/use-toast';
-import { LogIn, Shield, User } from 'lucide-react';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
-import { nanoid } from 'nanoid';
-
-
-
-interface LoginCredentials {
-  email: string;
-  password: string;
-  role: 'admin' | 'user';
-}
+import { useToast } from "@/hooks/use-toast";
+import { Eye, EyeOff } from "lucide-react";
 
 const Login = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { setUser } = useAuth();
-  const [credentials, setCredentials] = useState<LoginCredentials>({
-    email: '',
-    password: '',
-    role: 'user'
-  });
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-  // System credentials - Only authorized personnel
-  const testCredentials = {
-    admin: { email: 'admin@alcazaren.com.gt', password: 'admin123' },
-    users: [
-      'andrea@alcazaren.com.gt',
-      'julio@alcazaren.com.gt', 
-      'alberto@alcazaren.com.gt'
-    ]
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
-
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    // Validate credentials
-    let isValidUser = false;
-    
-    if (credentials.role === 'admin') {
-      isValidUser = credentials.email === testCredentials.admin.email && 
-                   credentials.password === testCredentials.admin.password;
-    } else {
-      // For standard users, check if email is in allowed list and use standard password
-      isValidUser = testCredentials.users.includes(credentials.email) && 
-                   credentials.password === 'user123';
-    }
-    
-    if (isValidUser) {
-      // Store session in localStorage (prepare for future backend integration)
-      const sessionData = {
-  id: nanoid(12), // ✅ ID generado automáticamente
-  email: credentials.email,
-  role: credentials.role,
-  loginTime: new Date().toISOString()
-};
-
-setUser(sessionData);
-localStorage.setItem("passkit_session", JSON.stringify(sessionData));
-
-  toast({
-        title: "Login successful",
-        description: `Welcome ${credentials.role === 'admin' ? 'Administrator' : 'User'}!`,
+  const handleLogin = async () => {
+    try {
+      const response = await fetch("http://localhost:3900/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       });
 
-   
-        navigate('/dashboard'); // ahora tanto admin como user van al dashboard
+      const data = await response.json();
 
+      if (response.ok) {
+        const userData = {
+          id: data.user.id,
+          email: data.user.email,
+          role: data.user.role,
+          loginTime: new Date().toISOString(),
+        };
 
-    } else {
-      setError('Access denied. Only authorized personnel can access this system.');
+        setUser(userData);
+        localStorage.setItem("passkit_session", JSON.stringify(userData));
+        navigate("/dashboard");
+        
+        toast({
+          title: "Login exitoso",
+          description: `Bienvenido, ${userData.email}`,
+        });
+      } else {
+        toast({
+          title: "Error de login",
+          description: data.error || "Credenciales incorrectas",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error de conexión",
+        description: "No se pudo conectar al servidor",
+        variant: "destructive",
+      });
     }
-
-    setIsLoading(false);
   };
 
-  const handleInputChange = (field: keyof LoginCredentials, value: string) => {
-    setCredentials(prev => ({ ...prev, [field]: value }));
-    if (error) setError(''); // Clear error when user starts typing
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Las contraseñas no coinciden",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:3900/api/auth/change-password", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          email, 
+          currentPassword: password, 
+          newPassword 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Contraseña actualizada",
+          description: "Tu contraseña ha sido cambiada exitosamente",
+        });
+        setIsChangingPassword(false);
+        setNewPassword("");
+        setConfirmPassword("");
+        setPassword("");
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "No se pudo cambiar la contraseña",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error de conexión",
+        description: "No se pudo conectar al servidor",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-secondary/10 p-4">
-      <Card className="w-full max-w-md glass-effect border-white/20">
-        <CardHeader className="text-center">
-          <div className="mx-auto w-12 h-12 bg-gradient-to-r from-primary to-secondary rounded-full flex items-center justify-center mb-4">
-            <LogIn className="w-6 h-6 text-white" />
-          </div>
-          <CardTitle className="text-2xl font-bold">PassKit Pro</CardTitle>
-          <CardDescription>
-            Sign in to manage your digital passes
-          </CardDescription>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-2xl text-center">
+            {isChangingPassword ? "Cambiar Contraseña" : "Digital Pass Forge"}
+          </CardTitle>
         </CardHeader>
-
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="role">Account Type</Label>
-              <Select 
-                value={credentials.role} 
-                onValueChange={(value: 'admin' | 'user') => handleInputChange('role', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select account type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="user">
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      Standard User
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="admin">
-                    <div className="flex items-center gap-2">
-                      <Shield className="w-4 h-4" />
-                      Administrator
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="Enter your email"
-                value={credentials.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="tu@email.com"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="password">
+              {isChangingPassword ? "Contraseña Actual" : "Contraseña"}
+            </Label>
+            <div className="relative">
               <Input
                 id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={credentials.password}
-                onChange={(e) => handleInputChange('password', e.target.value)}
-                required
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
               />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </Button>
             </div>
+          </div>
 
-            {/* Authorized users info */}
-            <div className="bg-muted/50 p-3 rounded-lg text-sm">
-              <p className="font-medium mb-2">Access Information:</p>
-              <div className="space-y-1 text-muted-foreground">
-                <p><strong>Admin:</strong> admin@alcazaren.com.gt</p>
-                <p><strong>Standard Users:</strong></p>
-                <ul className="text-xs ml-2 space-y-0.5">
-                  <li>• andrea@alcazaren.com.gt</li>
-                  <li>• julio@alcazaren.com.gt</li>
-                  <li>• alberto@alcazaren.com.gt</li>
-                </ul>
+          {isChangingPassword && (
+            <>
+              <div>
+                <Label htmlFor="newPassword">Nueva Contraseña</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="••••••••"
+                />
               </div>
-            </div>
-          </CardContent>
+              
+              <div>
+                <Label htmlFor="confirmPassword">Confirmar Nueva Contraseña</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                />
+              </div>
+            </>
+          )}
 
-          <CardFooter>
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isLoading || !credentials.email || !credentials.password}
-            >
-              {isLoading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin mr-2" />
-                  Signing in...
-                </>
-              ) : (
-                <>
-                  <LogIn className="w-4 h-4 mr-2" />
-                  Sign In
-                </>
-              )}
-            </Button>
-          </CardFooter>
-        </form>
+          <div className="space-y-2">
+            {isChangingPassword ? (
+              <div className="flex space-x-2">
+                <Button 
+                  onClick={handleChangePassword} 
+                  className="flex-1"
+                  disabled={!email || !password || !newPassword || !confirmPassword}
+                >
+                  Actualizar Contraseña
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsChangingPassword(false)}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Button 
+                  onClick={handleLogin} 
+                  className="w-full"
+                  disabled={!email || !password}
+                >
+                  Iniciar Sesión
+                </Button>
+                <Button 
+                  variant="link" 
+                  onClick={() => setIsChangingPassword(true)}
+                  className="w-full"
+                >
+                  ¿Necesitas cambiar tu contraseña?
+                </Button>
+              </>
+            )}
+          </div>
+        </CardContent>
       </Card>
     </div>
   );
