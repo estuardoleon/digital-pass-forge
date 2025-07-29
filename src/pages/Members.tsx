@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ColumnFilter } from "@/components/ColumnFilter";
-import { Edit, Trash2, User, Plus } from "lucide-react";
+import { Edit, Trash2, User, Plus, Upload, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -201,6 +201,16 @@ const Members = () => {
           >
             <Plus className="w-4 h-4 mr-2" />
             ADD MEMBER
+          </Button>
+          
+          <Button variant="outline" className="text-muted-foreground">
+            <Upload className="w-4 h-4 mr-2" />
+            IMPORT CSV
+          </Button>
+          
+          <Button variant="outline" className="text-muted-foreground">
+            <Download className="w-4 h-4 mr-2" />
+            EXPORT CSV
           </Button>
           
           <ColumnFilter 
